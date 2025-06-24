@@ -1,0 +1,36 @@
+package io.github.sndnv.layers.telemetry
+
+import io.github.sndnv.layers.telemetry.analytics.AnalyticsCollector
+import io.github.sndnv.layers.telemetry.metrics.MetricsProvider
+
+import scala.reflect.ClassTag
+
+class DefaultTelemetryContext(
+  metricsProviders: Set[MetricsProvider],
+  analyticsCollector: AnalyticsCollector
+) extends TelemetryContext {
+  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
+  override def metrics[M <: MetricsProvider](implicit tag: ClassTag[M]): M =
+    metricsProviders.collectFirst { case provider: M => provider } match {
+      case Some(provider) =>
+        provider
+
+      case None =>
+        throw new IllegalStateException(
+          s"Metrics provider [${tag.toString()}] requested but could not be found"
+        )
+    }
+
+  override def analytics: AnalyticsCollector =
+    analyticsCollector
+}
+
+object DefaultTelemetryContext {
+  def apply(
+    metricsProviders: Set[MetricsProvider],
+    analyticsCollector: AnalyticsCollector
+  ): DefaultTelemetryContext = new DefaultTelemetryContext(
+    metricsProviders = metricsProviders,
+    analyticsCollector = analyticsCollector
+  )
+}
