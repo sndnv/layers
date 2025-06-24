@@ -1,0 +1,12 @@
+logs
+target
+classes
+
+.idea
+.idea_modules
+.classpath
+.project
+.settings
+*.keystore
+.bsp
+.DS_Store
