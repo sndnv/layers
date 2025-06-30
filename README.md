@@ -1,7 +1,5 @@
 # layers
 
----
-
 <img src="./assets/layers.logo.svg" width="64px" alt="Layers Logo" align="right"/>
 
 `layers` is a loose collection of generic components for building services and is heavily based
@@ -20,25 +18,29 @@ libraryDependencies ++= Seq(
 
 > Examples of their usage can be seen in the tests of each component.
 
-### [`api`](src/main/scala/io/github/sndnv/layers/api)
+### [`api`](lib/src/main/scala/io/github/sndnv/layers/api)
 
 Directives for logging/metrics and discarding entities, JSON formats and matchers.
 
-### [`persistence`](src/main/scala/io/github/sndnv/layers/persistence)
+### [`persistence`](lib/src/main/scala/io/github/sndnv/layers/persistence)
 
 Generic data store traits with migration support.
 
-### [`security`](src/main/scala/io/github/sndnv/layers/security)
+### [`security`](lib/src/main/scala/io/github/sndnv/layers/security)
 
 JWT-based authenticators, JWK providers, OAuth clients and TLS helper classes.
 
-### [`service`](src/main/scala/io/github/sndnv/layers/service)
+### [`service`](lib/src/main/scala/io/github/sndnv/layers/service)
 
 Service persistence and bootstrap providers.
 
-### [`telemetry`](src/main/scala/io/github/sndnv/layers/telemetry)
+### [`telemetry`](lib/src/main/scala/io/github/sndnv/layers/telemetry)
 
 Collectors and providers for analytics information and metrics.
+
+### [`testing`](testing/README.md)
+
+Helper classes and functions for testing.
 
 ## Development
 

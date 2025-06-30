@@ -1,6 +1,8 @@
 import sbt.Keys.*
 
-name := "layers"
+val libraryName: String = "layers"
+
+name := libraryName
 
 ThisBuild / scalaVersion := "2.13.16"
 
@@ -47,14 +49,24 @@ lazy val versions = new {
   val logback  = "1.5.18"
 }
 
-lazy val root = (project in file("."))
+lazy val root = project
+  .in(file("."))
+  .settings(
+    commonSettings,
+    Seq(
+      publish / skip      := true,
+      publishLocal / skip := true
+    )
+  )
+  .aggregate(testing, lib)
+
+lazy val lib = (project in file("./lib"))
   .settings(commonSettings)
   .settings(
+    name := libraryName,
     libraryDependencies ++= Seq(
-      "org.apache.pekko"      %% "pekko-actor"                       % versions.pekko                   % Provided,
       "org.apache.pekko"      %% "pekko-actor-typed"                 % versions.pekko                   % Provided,
       "org.apache.pekko"      %% "pekko-stream"                      % versions.pekko                   % Provided,
-      "org.apache.pekko"      %% "pekko-discovery"                   % versions.pekko                   % Provided,
       "org.apache.pekko"      %% "pekko-slf4j"                       % versions.pekko                   % Provided,
       "org.apache.pekko"      %% "pekko-http"                        % versions.pekkoHttp               % Provided,
       "org.apache.pekko"      %% "pekko-http-core"                   % versions.pekkoHttp               % Provided,
@@ -62,7 +74,6 @@ lazy val root = (project in file("."))
       "com.github.pjfanning"  %% "pekko-http-play-json"              % versions.pekkoJson               % Provided,
       "org.bitbucket.b_c"      % "jose4j"                            % versions.jose4j                  % Provided,
       "io.opentelemetry"       % "opentelemetry-api"                 % versions.openTelemetry           % Provided,
-      "ch.qos.logback"         % "logback-classic"                   % versions.logback                 % Provided,
       "io.opentelemetry"       % "opentelemetry-sdk"                 % versions.openTelemetry           % Provided,
       "io.opentelemetry"       % "opentelemetry-exporter-prometheus" % versions.openTelemetryPrometheus % Provided,
       "io.prometheus"          % "simpleclient"                      % versions.prometheus              % Provided,
@@ -77,7 +88,24 @@ lazy val root = (project in file("."))
       "org.mockito"           %% "mockito-scala"                     % versions.mockito                 % Test,
       "org.mockito"           %% "mockito-scala-scalatest"           % versions.mockito                 % Test,
       "org.mockito"            % "mockito-inline"                    % versions.mockitoInline           % Test,
-      "com.google.jimfs"       % "jimfs"                             % versions.jimfs                   % Test
+      "com.google.jimfs"       % "jimfs"                             % versions.jimfs                   % Test,
+      "ch.qos.logback"         % "logback-classic"                   % versions.logback                 % Test
+    )
+  )
+  .dependsOn(testing % "test->compile")
+
+lazy val testing = (project in file("./testing"))
+  .settings(commonSettings)
+  .settings(
+    name := s"$libraryName-testing",
+    libraryDependencies ++= Seq(
+      "org.apache.pekko"   %% "pekko-actor-typed" % versions.pekko      % Provided,
+      "org.apache.pekko"   %% "pekko-stream"      % versions.pekko      % Provided,
+      "org.scalacheck"     %% "scalacheck"        % versions.scalaCheck % Provided,
+      "org.scalatest"      %% "scalatest"         % versions.scalaTest  % Provided,
+      "com.google.jimfs"    % "jimfs"             % versions.jimfs      % Provided,
+      "com.typesafe.slick" %% "slick"             % versions.slick      % Provided,
+      "com.h2database"      % "h2"                % versions.h2         % Provided
     )
   )
 
