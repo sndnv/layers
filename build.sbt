@@ -63,7 +63,8 @@ lazy val root = project
 lazy val lib = (project in file("./lib"))
   .settings(commonSettings)
   .settings(
-    name := libraryName,
+    name        := libraryName,
+    description := "Generic components for building services",
     libraryDependencies ++= Seq(
       "org.apache.pekko"      %% "pekko-actor-typed"                 % versions.pekko                   % Provided,
       "org.apache.pekko"      %% "pekko-stream"                      % versions.pekko                   % Provided,
@@ -97,7 +98,8 @@ lazy val lib = (project in file("./lib"))
 lazy val testing = (project in file("./testing"))
   .settings(commonSettings)
   .settings(
-    name := s"$libraryName-testing",
+    name        := s"$libraryName-testing",
+    description := "Helper classes and functions for testing",
     libraryDependencies ++= Seq(
       "org.apache.pekko"   %% "pekko-actor-typed" % versions.pekko      % Provided,
       "org.apache.pekko"   %% "pekko-stream"      % versions.pekko      % Provided,
