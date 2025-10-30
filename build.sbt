@@ -4,7 +4,7 @@ val libraryName: String = "layers"
 
 name := libraryName
 
-ThisBuild / scalaVersion := "2.13.16"
+ThisBuild / scalaVersion := "2.13.17"
 
 ThisBuild / organization  := "io.github.sndnv"
 ThisBuild / homepage      := Some(url("https://github.com/sndnv/layers"))
@@ -21,31 +21,31 @@ ThisBuild / developers    := List(
 
 lazy val versions = new {
   // pekko
-  val pekko         = "1.1.4"
-  val pekkoHttp     = "1.2.0"
-  val pekkoHttpCors = "1.2.0"
-  val pekkoJson     = "3.2.1"
+  val pekko         = "1.2.1"
+  val pekkoHttp     = "1.3.0"
+  val pekkoHttpCors = "1.3.0"
+  val pekkoJson     = "3.6.0"
 
   // persistence
   val slick = "3.6.1"
-  val h2    = "2.3.232"
+  val h2    = "2.4.240"
 
   // telemetry
-  val openTelemetry           = "1.51.0"
-  val openTelemetryPrometheus = "1.51.0-alpha"
+  val openTelemetry           = "1.55.0"
+  val openTelemetryPrometheus = "1.55.0-alpha"
   val prometheus              = "0.16.0"
 
   // testing
-  val scalaCheck    = "1.18.1"
+  val scalaCheck    = "1.19.0"
   val scalaTest     = "3.2.19"
   val mockito       = "2.0.0"
   val mockitoInline = "5.2.0"
-  val jimfs         = "1.3.0"
+  val jimfs         = "1.3.1"
 
   // misc
-  val playJson = "2.10.6"
+  val playJson = "2.10.8"
   val jose4j   = "0.9.6"
-  val logback  = "1.5.18"
+  val logback  = "1.5.20"
 }
 
 lazy val root = project
