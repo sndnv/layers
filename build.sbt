@@ -38,7 +38,6 @@ lazy val versions = new {
   // testing
   val scalaCheck    = "1.18.1"
   val scalaTest     = "3.2.19"
-  val wiremock      = "3.0.1"
   val mockito       = "2.0.0"
   val mockitoInline = "5.2.0"
   val jimfs         = "1.3.0"
@@ -54,8 +53,9 @@ lazy val root = project
   .settings(
     commonSettings,
     Seq(
-      publish / skip      := true,
-      publishLocal / skip := true
+      publish / skip       := true,
+      publishLocal / skip  := true,
+      mimaFailOnNoPrevious := false
     )
   )
   .aggregate(testing, lib)
@@ -63,43 +63,46 @@ lazy val root = project
 lazy val lib = (project in file("./lib"))
   .settings(commonSettings)
   .settings(
-    name        := libraryName,
-    description := "Generic components for building services",
+    name                  := libraryName,
+    description           := "Generic components for building services",
     libraryDependencies ++= Seq(
-      "org.apache.pekko"      %% "pekko-actor-typed"                 % versions.pekko                   % Provided,
-      "org.apache.pekko"      %% "pekko-stream"                      % versions.pekko                   % Provided,
-      "org.apache.pekko"      %% "pekko-slf4j"                       % versions.pekko                   % Provided,
-      "org.apache.pekko"      %% "pekko-http"                        % versions.pekkoHttp               % Provided,
-      "org.apache.pekko"      %% "pekko-http-core"                   % versions.pekkoHttp               % Provided,
-      "com.typesafe.play"     %% "play-json"                         % versions.playJson                % Provided,
-      "com.github.pjfanning"  %% "pekko-http-play-json"              % versions.pekkoJson               % Provided,
-      "org.bitbucket.b_c"      % "jose4j"                            % versions.jose4j                  % Provided,
-      "io.opentelemetry"       % "opentelemetry-api"                 % versions.openTelemetry           % Provided,
-      "io.opentelemetry"       % "opentelemetry-sdk"                 % versions.openTelemetry           % Provided,
-      "io.opentelemetry"       % "opentelemetry-exporter-prometheus" % versions.openTelemetryPrometheus % Provided,
-      "io.prometheus"          % "simpleclient"                      % versions.prometheus              % Provided,
-      "com.typesafe.slick"    %% "slick"                             % versions.slick                   % Test,
-      "com.h2database"         % "h2"                                % versions.h2                      % Test,
-      "org.scalacheck"        %% "scalacheck"                        % versions.scalaCheck              % Test,
-      "org.scalatest"         %% "scalatest"                         % versions.scalaTest               % Test,
-      "org.apache.pekko"      %% "pekko-testkit"                     % versions.pekko                   % Test,
-      "org.apache.pekko"      %% "pekko-stream-testkit"              % versions.pekko                   % Test,
-      "org.apache.pekko"      %% "pekko-http-testkit"                % versions.pekkoHttp               % Test,
-      "com.github.tomakehurst" % "wiremock-jre8"                     % versions.wiremock                % Test,
-      "org.mockito"           %% "mockito-scala"                     % versions.mockito                 % Test,
-      "org.mockito"           %% "mockito-scala-scalatest"           % versions.mockito                 % Test,
-      "org.mockito"            % "mockito-inline"                    % versions.mockitoInline           % Test,
-      "com.google.jimfs"       % "jimfs"                             % versions.jimfs                   % Test,
-      "ch.qos.logback"         % "logback-classic"                   % versions.logback                 % Test
-    )
+      "org.apache.pekko"     %% "pekko-actor-typed"                 % versions.pekko                   % Provided,
+      "org.apache.pekko"     %% "pekko-stream"                      % versions.pekko                   % Provided,
+      "org.apache.pekko"     %% "pekko-slf4j"                       % versions.pekko                   % Provided,
+      "org.apache.pekko"     %% "pekko-http"                        % versions.pekkoHttp               % Provided,
+      "org.apache.pekko"     %% "pekko-http-core"                   % versions.pekkoHttp               % Provided,
+      "com.typesafe.play"    %% "play-json"                         % versions.playJson                % Provided,
+      "com.github.pjfanning" %% "pekko-http-play-json"              % versions.pekkoJson               % Provided,
+      "org.bitbucket.b_c"     % "jose4j"                            % versions.jose4j                  % Provided,
+      "io.opentelemetry"      % "opentelemetry-api"                 % versions.openTelemetry           % Provided,
+      "io.opentelemetry"      % "opentelemetry-sdk"                 % versions.openTelemetry           % Provided,
+      "io.opentelemetry"      % "opentelemetry-exporter-prometheus" % versions.openTelemetryPrometheus % Provided,
+      "io.prometheus"         % "simpleclient"                      % versions.prometheus              % Provided,
+      "com.typesafe.slick"   %% "slick"                             % versions.slick                   % Test,
+      "com.h2database"        % "h2"                                % versions.h2                      % Test,
+      "org.scalacheck"       %% "scalacheck"                        % versions.scalaCheck              % Test,
+      "org.scalatest"        %% "scalatest"                         % versions.scalaTest               % Test,
+      "org.apache.pekko"     %% "pekko-testkit"                     % versions.pekko                   % Test,
+      "org.apache.pekko"     %% "pekko-stream-testkit"              % versions.pekko                   % Test,
+      "org.apache.pekko"     %% "pekko-http-testkit"                % versions.pekkoHttp               % Test,
+      "org.mockito"          %% "mockito-scala"                     % versions.mockito                 % Test,
+      "org.mockito"          %% "mockito-scala-scalatest"           % versions.mockito                 % Test,
+      "org.mockito"           % "mockito-inline"                    % versions.mockitoInline           % Test,
+      "com.google.jimfs"      % "jimfs"                             % versions.jimfs                   % Test,
+      "ch.qos.logback"        % "logback-classic"                   % versions.logback                 % Test
+    ),
+    mimaPreviousArtifacts := git.gitDescribedVersion.value
+      .flatMap(_.split("-").headOption)
+      .map(version => organization.value %% moduleName.value % version)
+      .toSet
   )
   .dependsOn(testing % "test->compile")
 
 lazy val testing = (project in file("./testing"))
   .settings(commonSettings)
   .settings(
-    name        := s"$libraryName-testing",
-    description := "Helper classes and functions for testing",
+    name                  := s"$libraryName-testing",
+    description           := "Helper classes and functions for testing",
     libraryDependencies ++= Seq(
       "org.apache.pekko"   %% "pekko-actor-typed" % versions.pekko      % Provided,
       "org.apache.pekko"   %% "pekko-stream"      % versions.pekko      % Provided,
@@ -108,7 +111,11 @@ lazy val testing = (project in file("./testing"))
       "com.google.jimfs"    % "jimfs"             % versions.jimfs      % Provided,
       "com.typesafe.slick" %% "slick"             % versions.slick      % Provided,
       "com.h2database"      % "h2"                % versions.h2         % Provided
-    )
+    ),
+    mimaPreviousArtifacts := git.gitDescribedVersion.value
+      .flatMap(_.split("-").headOption)
+      .map(version => organization.value %% moduleName.value % version)
+      .toSet
   )
 
 lazy val excludedWarts = Seq(
@@ -155,7 +162,7 @@ addCommandAlias(
 
 addCommandAlias(
   name = "check",
-  value = "; dependencyUpdates; scalafmtSbtCheck; scalafmtCheck; Test/scalafmtCheck"
+  value = "; dependencyUpdates; scalafmtSbtCheck; scalafmtCheck; Test/scalafmtCheck; mimaReportBinaryIssues"
 )
 
 addCommandAlias(
