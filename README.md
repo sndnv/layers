@@ -10,17 +10,22 @@ on [Apache Pekko](https://github.com/apache/pekko).
 ```
 libraryDependencies ++= Seq(
   "io.github.sndnv" %% "layers" % "<version>",
+  "io.github.sndnv" %% "layers-testing" % "<version>" % Test, // components used for unit testing
   ...
 )
 ```
 
 ## Components and Usage
 
-> Examples of their usage can be seen in the tests of each component.
+> Examples of their usage can be seen in either the code documentation or the tests of each component.
 
 ### [`api`](lib/src/main/scala/io/github/sndnv/layers/api)
 
 Directives for logging/metrics and discarding entities, JSON formats and matchers.
+
+### [`events`](lib/src/main/scala/io/github/sndnv/layers/events)
+
+Event publishing and collection.
 
 ### [`persistence`](lib/src/main/scala/io/github/sndnv/layers/persistence)
 
@@ -32,7 +37,19 @@ JWT-based authenticators, JWK providers, OAuth clients and TLS helper classes.
 
 ### [`service`](lib/src/main/scala/io/github/sndnv/layers/service)
 
-Service persistence and bootstrap providers.
+Service persistence, bootstrap providers, actions and components.
+
+#### [`service/actions`](lib/src/main/scala/io/github/sndnv/layers/service/actions)
+
+Service actions, action scheduling and event-based execution.
+
+#### [`service/components`](lib/src/main/scala/io/github/sndnv/layers/service/components)
+
+Service components, static and dynamic component loading, and component dependency resolution.
+
+#### [`service/config`](lib/src/main/scala/io/github/sndnv/layers/service/config)
+
+Basic service configuration verification.
 
 ### [`telemetry`](lib/src/main/scala/io/github/sndnv/layers/telemetry)
 
