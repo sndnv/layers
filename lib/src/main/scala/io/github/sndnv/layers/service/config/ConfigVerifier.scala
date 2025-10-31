@@ -6,7 +6,6 @@ import scala.io.Source
 import scala.jdk.CollectionConverters._
 import scala.util.Failure
 import scala.util.Success
-import scala.util.Try
 import scala.util.Using
 import scala.util.matching.Regex
 
@@ -79,11 +78,17 @@ object ConfigVerifier {
       s"$configBasename.conf"
     }
 
-    val configFile = Option(getClass.getClassLoader.getResource(configFileName))
-      .map(resource => new File(resource.getFile))
-      .getOrElse(new File(configFileName))
-
-    loadContent(file = configFile).map(parseDeprecations) match {
+    Using(
+      Option(getClass.getClassLoader.getResource(configFileName))
+        .map(resource => Source.fromURL(resource))
+        .getOrElse(Source.fromFile(new File(configFileName)))
+    ) { source =>
+      source
+        .getLines()
+        .toSeq
+        .map(_.trim)
+        .filter(_.nonEmpty)
+    }.map(parseDeprecations) match {
       case Success(deprecations) =>
         processDeprecations(
           deprecations = deprecations,
@@ -93,21 +98,12 @@ object ConfigVerifier {
       case Failure(e) =>
         log.error(
           "Configuration verification for [{}] failed with [{} - {}]",
-          configFile.getCanonicalPath,
+          configFileName,
           e.getClass.getSimpleName,
           e.getMessage
         )
     }
   }
-
-  private[config] def loadContent(file: File): Try[Seq[String]] =
-    Using(Source.fromFile(file = file)) { source =>
-      source
-        .getLines()
-        .toSeq
-        .map(_.trim)
-        .filter(_.nonEmpty)
-    }
 
   private[config] def parseDeprecations(content: Seq[String]): Seq[Deprecation] =
     content
