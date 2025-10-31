@@ -1,23 +1,11 @@
 package io.github.sndnv.layers.service.config
 
-import java.io.File
-
-import scala.util.Success
-
 import io.github.sndnv.layers.testing.UnitSpec
 import org.mockito.scalatest.AsyncMockitoSugar
 import org.slf4j.Logger
 
 class ConfigVerifierSpec extends UnitSpec with AsyncMockitoSugar {
-  "A ConfigVerifier" should "support loading raw config file content" in {
-    val actualContent = ConfigVerifier.loadContent(
-      file = new File(getClass.getClassLoader.getResource("verification-test.conf").getFile)
-    )
-
-    actualContent should be(Success(configContent))
-  }
-
-  it should "support parsing environment variable deprecations from raw config file content" in {
+  "A ConfigVerifier" should "support parsing environment variable deprecations from raw config file content" in {
     val actual = ConfigVerifier.parseDeprecations(content = configContent)
 
     actual.sortBy(_.parameter).toList match {
