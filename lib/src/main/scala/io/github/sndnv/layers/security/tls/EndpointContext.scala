@@ -6,6 +6,7 @@ import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.security.KeyStore
 import java.security.SecureRandom
+import java.security.cert.X509Certificate
 import java.util.concurrent.ThreadLocalRandom
 
 import javax.net.ssl._
@@ -192,6 +193,14 @@ object EndpointContext {
       try {
         val store = KeyStore.getInstance(config.storeType)
         store.load(rawStore, config.storePassword.toCharArray)
+
+        store
+          .aliases()
+          .asScala
+          .flatMap(alias => Option(store.getCertificate(alias)))
+          .collect { case cert: X509Certificate => cert }
+          .foreach(_.checkValidity())
+
         store
       } finally {
         rawStore.close()

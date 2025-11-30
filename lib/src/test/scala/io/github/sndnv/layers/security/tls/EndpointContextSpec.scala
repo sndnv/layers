@@ -2,6 +2,8 @@ package io.github.sndnv.layers.security.tls
 
 import java.io.ByteArrayOutputStream
 import java.io.FileNotFoundException
+import java.security.cert.CertificateExpiredException
+import java.security.cert.CertificateNotYetValidException
 
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
@@ -191,6 +193,30 @@ class EndpointContextSpec extends UnitSpec {
     an[IllegalArgumentException] should be thrownBy {
       EndpointContext.Encoded.decodeKeyStore(encoded, password, config.storeType)
     }
+  }
+
+  it should "fail to load a KeyStore if one or more certificates is invalid (expired)" in {
+    val config = EndpointContext.StoreConfig(
+      storePath = "./lib/src/test/resources/certs/invalid-expired.p12",
+      storeType = "PKCS12",
+      storePassword = "passw0rd"
+    )
+
+    val e = intercept[CertificateExpiredException] { EndpointContext.loadStore(config) }
+
+    e.getMessage should be("NotAfter: Tue Dec 26 00:00:09 CET 2000")
+  }
+
+  it should "fail to load a KeyStore if one or more certificates is invalid (future)" in {
+    val config = EndpointContext.StoreConfig(
+      storePath = "./lib/src/test/resources/certs/invalid-future.p12",
+      storeType = "PKCS12",
+      storePassword = "passw0rd"
+    )
+
+    val e = intercept[CertificateNotYetValidException] { EndpointContext.loadStore(config) }
+
+    e.getMessage should be("NotBefore: Wed Jan 01 00:00:04 CET 3000")
   }
 
   it should "support creating enabled contexts" in {
