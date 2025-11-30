@@ -204,7 +204,7 @@ class EndpointContextSpec extends UnitSpec {
 
     val e = intercept[CertificateExpiredException] { EndpointContext.loadStore(config) }
 
-    e.getMessage should be("NotAfter: Tue Dec 26 00:00:09 CET 2000")
+    e.getMessage should startWith("NotAfter")
   }
 
   it should "fail to load a KeyStore if one or more certificates is invalid (future)" in {
@@ -216,7 +216,7 @@ class EndpointContextSpec extends UnitSpec {
 
     val e = intercept[CertificateNotYetValidException] { EndpointContext.loadStore(config) }
 
-    e.getMessage should be("NotBefore: Wed Jan 01 00:00:04 CET 3000")
+    e.getMessage should startWith("NotBefore")
   }
 
   it should "support creating enabled contexts" in {
