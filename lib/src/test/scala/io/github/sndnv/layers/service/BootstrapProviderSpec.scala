@@ -12,7 +12,7 @@ import org.apache.pekko.actor.typed.ActorSystem
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 
 class BootstrapProviderSpec extends UnitSpec {
-  import BootstrapProviderSpec._
+  import BootstrapProviderSpec.*
 
   "A BootstrapProvider" should "support parsing its mode from config" in {
     BootstrapProvider.BootstrapMode(mode = "off") should be(BootstrapProvider.BootstrapMode.Off)

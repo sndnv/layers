@@ -5,7 +5,6 @@ import java.io.File
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
-import com.typesafe.{config => typesafe}
 import io.github.sndnv.layers.service.bootstrap.BootstrapEntityProvider
 import io.github.sndnv.layers.service.bootstrap.BootstrapExecutor
 import org.apache.pekko.Done
@@ -31,14 +30,14 @@ object BootstrapProvider {
         case _                => throw new IllegalArgumentException(s"Unsupported bootstrap mode provided: [$mode]")
       }
 
-    final case object Off extends BootstrapMode
-    final case object Init extends BootstrapMode
-    final case object InitAndStart extends BootstrapMode
-    final case object Drop extends BootstrapMode
+    case object Off extends BootstrapMode
+    case object Init extends BootstrapMode
+    case object InitAndStart extends BootstrapMode
+    case object Drop extends BootstrapMode
   }
 
   class Default(
-    bootstrapConfig: typesafe.Config,
+    bootstrapConfig: com.typesafe.config.Config,
     persistence: PersistenceProvider,
     bootstrap: BootstrapExecutor
   )(implicit ec: ExecutionContext)
@@ -83,8 +82,8 @@ object BootstrapProvider {
       result.map(_ => mode)
     }.flatten
 
-    private def loadBootstrapFile(configFile: String): typesafe.Config =
-      typesafe.ConfigFactory
+    private def loadBootstrapFile(configFile: String): com.typesafe.config.Config =
+      com.typesafe.config.ConfigFactory
         .parseFile(
           Option(getClass.getClassLoader.getResource(configFile))
             .map(resource => new File(resource.getFile))
@@ -95,9 +94,9 @@ object BootstrapProvider {
   }
 
   def apply(
-    bootstrapConfig: typesafe.Config,
+    bootstrapConfig: com.typesafe.config.Config,
     persistence: PersistenceProvider,
-    entityProviders: Seq[BootstrapEntityProvider[_ <: Product]]
+    entityProviders: Seq[BootstrapEntityProvider[? <: Product]]
   )(implicit ec: ExecutionContext): BootstrapProvider =
     new Default(
       bootstrapConfig = bootstrapConfig,

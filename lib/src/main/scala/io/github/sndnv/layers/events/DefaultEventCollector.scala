@@ -9,8 +9,8 @@ import scala.util.Success
 import io.github.sndnv.layers.events.exceptions.EventCollectionFailure
 import org.apache.pekko.Done
 import org.apache.pekko.NotUsed
-import org.apache.pekko.actor.typed._
-import org.apache.pekko.actor.typed.scaladsl.AskPattern._
+import org.apache.pekko.actor.typed.*
+import org.apache.pekko.actor.typed.scaladsl.AskPattern.*
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.scaladsl.StashBuffer
 import org.apache.pekko.stream.OverflowStrategy
@@ -304,7 +304,7 @@ object DefaultEventCollector {
 
   private final case class PublishComplete(failures: Int) extends Message
 
-  private final case object StartCollection extends Message
+  private case object StartCollection extends Message
 
   private final case class GetState(replyTo: ActorRef[State]) extends Message
 

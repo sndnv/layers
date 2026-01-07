@@ -1,6 +1,6 @@
 package io.github.sndnv.layers.telemetry.metrics.internal
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 import io.opentelemetry.api.common.Attributes
 import io.opentelemetry.api.metrics.Meter

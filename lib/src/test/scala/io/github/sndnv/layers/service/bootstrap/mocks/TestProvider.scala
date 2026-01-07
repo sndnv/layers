@@ -3,7 +3,7 @@ package io.github.sndnv.layers.service.bootstrap.mocks
 import java.util.concurrent.ConcurrentLinkedQueue
 
 import scala.concurrent.Future
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 import com.typesafe.config.Config
 import io.github.sndnv.layers.service.bootstrap.BootstrapEntityProvider

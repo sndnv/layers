@@ -128,7 +128,7 @@ object Event {
     *
     * @see [[Event]] for more information on publishing events
     */
-  final case class Recorder private (eventName: String, eventAttributes: Map[String, AttributeValue]) {
+  final case class Recorder(eventName: String, eventAttributes: Map[String, AttributeValue]) {
 
     /**
       * Records a new event that uses the already specified name and attributes.
@@ -147,7 +147,7 @@ object Event {
       * @see [[Recorder.record]] recording without extra attribute
       */
     def recordWithAttributes(attributes: (String, AttributeValue)*)(implicit collector: EventCollector): Unit =
-      collector.publish(createWithAttributes(attributes = attributes: _*))
+      collector.publish(createWithAttributes(attributes = attributes*))
 
     /**
       * Creates a new event that uses the already specified name and attributes.

@@ -7,8 +7,8 @@ import org.apache.pekko.actor.typed.scaladsl.Behaviors
 
 class MemoryStoreSpec extends UnitSpec with KeyValueStoreBehaviour {
   "A MemoryStore" should behave like keyValueStore[MemoryStore[String, Int]](
-    createStore = telemetry =>
-      MemoryStore(name = "map-store")(
+    createStore = (telemetry, name) =>
+      MemoryStore(name = name)(
         s = ActorSystem(guardianBehavior = Behaviors.ignore, name = "MemoryStoreSpec"),
         telemetry = telemetry,
         t = timeout

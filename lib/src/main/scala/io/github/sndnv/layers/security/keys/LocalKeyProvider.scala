@@ -5,7 +5,7 @@ import java.security.Key
 import scala.concurrent.Future
 
 import io.github.sndnv.layers.security.exceptions.ProviderFailure
-import org.jose4j.jwk._
+import org.jose4j.jwk.*
 
 final class LocalKeyProvider(
   jwk: JsonWebKey,

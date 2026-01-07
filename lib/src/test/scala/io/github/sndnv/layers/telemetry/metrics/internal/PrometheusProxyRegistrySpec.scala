@@ -4,7 +4,7 @@ import java.util
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 import io.github.sndnv.layers.telemetry.mocks.MockMeter
 import io.github.sndnv.layers.testing.UnitSpec

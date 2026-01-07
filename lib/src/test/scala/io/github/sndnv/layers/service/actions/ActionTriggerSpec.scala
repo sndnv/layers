@@ -3,7 +3,7 @@ package io.github.sndnv.layers.service.actions
 import java.time.Instant
 import java.time.LocalTime
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 import io.github.sndnv.layers.testing.UnitSpec
 

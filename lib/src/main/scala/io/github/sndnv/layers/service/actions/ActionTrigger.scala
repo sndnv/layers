@@ -7,7 +7,7 @@ import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 
 import scala.annotation.tailrec
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 import com.typesafe.config.Config
 

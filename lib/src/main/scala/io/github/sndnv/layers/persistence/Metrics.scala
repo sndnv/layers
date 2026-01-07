@@ -41,7 +41,7 @@ object Metrics {
     }
 
     class Default(meter: Meter, namespace: String) extends Store {
-      import io.github.sndnv.layers.telemetry.metrics.MeterExtensions._
+      import io.github.sndnv.layers.telemetry.metrics.MeterExtensions.*
 
       private val subsystem: String = "persistence_store"
 

@@ -2,10 +2,10 @@ package io.github.sndnv.layers.security.jwt
 
 import java.security.Key
 
-import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
-import scala.jdk.CollectionConverters._
+import scala.concurrent.duration.FiniteDuration
+import scala.jdk.CollectionConverters.*
 import scala.util.Try
 import scala.util.control.NonFatal
 
@@ -84,7 +84,7 @@ class DefaultJwtAuthenticator(
         .setJwsAlgorithmConstraints(
           new AlgorithmConstraints(
             ConstraintType.PERMIT,
-            provider.allowedAlgorithms: _*
+            provider.allowedAlgorithms*
           )
         )
         .build()

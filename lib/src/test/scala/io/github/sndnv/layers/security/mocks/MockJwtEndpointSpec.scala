@@ -2,7 +2,7 @@ package io.github.sndnv.layers.security.mocks
 
 import scala.collection.mutable
 import scala.concurrent.Future
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 import io.github.sndnv.layers.security.keys.Generators
 import io.github.sndnv.layers.testing.UnitSpec

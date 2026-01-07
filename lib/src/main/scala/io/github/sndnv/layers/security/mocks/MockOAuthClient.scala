@@ -39,9 +39,5 @@ class MockOAuthClient(token: Option[OAuthClient.AccessTokenResponse]) extends OA
   def passwordTokensProvided: Int = passwordTokensProvidedCounter.get()
 
   def tokensProvided: Int =
-    (
-      clientCredentialsTokensProvidedCounter.get()
-        + refreshTokensProvidedCounter.get()
-        + passwordTokensProvidedCounter.get()
-    )
+    clientCredentialsTokensProvidedCounter.get() + refreshTokensProvidedCounter.get() + passwordTokensProvidedCounter.get()
 }

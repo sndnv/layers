@@ -20,7 +20,7 @@ import org.slf4j.Logger
 final case class Migration(
   version: Int,
   needed: Migration.Action[Boolean],
-  action: Migration.Action[_]
+  action: Migration.Action[?]
 ) {
 
   /**

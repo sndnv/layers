@@ -10,7 +10,7 @@ import io.github.sndnv.layers.testing.UnitSpec
 import org.apache.pekko.Done
 
 class PersistenceProviderSpec extends UnitSpec {
-  import PersistenceProviderSpec._
+  import PersistenceProviderSpec.*
 
   "A PersistenceProvider" should "combining persistence providers" in {
     val expectedResultA = MigrationResult(found = 2, executed = 1)

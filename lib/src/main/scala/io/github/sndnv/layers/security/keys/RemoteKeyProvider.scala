@@ -2,10 +2,10 @@ package io.github.sndnv.layers.security.keys
 
 import java.security.Key
 
-import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
-import scala.jdk.CollectionConverters._
+import scala.concurrent.duration.FiniteDuration
+import scala.jdk.CollectionConverters.*
 import scala.util.Try
 import scala.util.control.NonFatal
 
@@ -18,13 +18,13 @@ import io.github.sndnv.layers.telemetry.TelemetryContext
 import org.apache.pekko.Done
 import org.apache.pekko.actor.typed.ActorSystem
 import org.apache.pekko.actor.typed.scaladsl.LoggerOps
+import org.apache.pekko.http.scaladsl.Http
+import org.apache.pekko.http.scaladsl.HttpsConnectionContext
 import org.apache.pekko.http.scaladsl.model.HttpMethods
 import org.apache.pekko.http.scaladsl.model.HttpRequest
 import org.apache.pekko.http.scaladsl.model.HttpResponse
 import org.apache.pekko.http.scaladsl.model.StatusCodes
 import org.apache.pekko.http.scaladsl.unmarshalling.Unmarshal
-import org.apache.pekko.http.scaladsl.Http
-import org.apache.pekko.http.scaladsl.HttpsConnectionContext
 import org.apache.pekko.util.Timeout
 import org.jose4j.jwk.JsonWebKeySet
 import org.jose4j.jws.AlgorithmIdentifiers

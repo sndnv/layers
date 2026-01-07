@@ -6,12 +6,10 @@ import scala.util.Using
 
 import io.github.sndnv.layers.testing.UnitSpec
 import slick.jdbc.H2Profile
-import slick.jdbc.JdbcBackend
-import slick.jdbc.JdbcProfile
 
 class TestSlickDatabaseSpec extends UnitSpec with TestSlickDatabase {
   "A TestSlickDatabase" should "support providing a test database" in {
-    withStore { (profile: JdbcProfile, db: JdbcBackend#JdbcDatabaseDef) =>
+    withStore { (profile, db) =>
       profile should be(H2Profile)
 
       Using(db.source.createConnection()) { connection =>

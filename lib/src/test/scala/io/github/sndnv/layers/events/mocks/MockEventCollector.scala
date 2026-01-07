@@ -1,7 +1,7 @@
 package io.github.sndnv.layers.events.mocks
 
 import scala.collection.mutable
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 import io.github.sndnv.layers.events.DefaultEventCollector
 import io.github.sndnv.layers.events.Event

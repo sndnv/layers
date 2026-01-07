@@ -4,7 +4,7 @@ import java.time.Instant
 import java.util.concurrent.atomic.AtomicBoolean
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.Success
 
 import io.github.sndnv.layers.telemetry.ApplicationInformation

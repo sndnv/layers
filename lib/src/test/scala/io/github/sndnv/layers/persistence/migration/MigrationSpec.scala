@@ -13,7 +13,7 @@ class MigrationSpec extends UnitSpec with TestSlickDatabase {
 
   "A Migration" should "run its action" in withRetry {
     withStore { (profile, h2db) =>
-      import profile.api._
+      import profile.api.*
 
       val queryRows = sql"""SELECT COUNT(*) FROM TEST_TABLE""".as[Int].head
 
@@ -52,7 +52,7 @@ class MigrationSpec extends UnitSpec with TestSlickDatabase {
 
   it should "handle failures" in withRetry {
     withStore { (profile, h2db) =>
-      import profile.api._
+      import profile.api.*
 
       val migration = Migration(
         version = 1,
@@ -73,8 +73,8 @@ class MigrationSpec extends UnitSpec with TestSlickDatabase {
 
 object MigrationSpec {
   class TestStore extends Store {
-    override val name: String = "test-store"
-    override val migrations: Seq[Migration] = Seq.empty
+    override def name(): String = "test-store"
+    override def migrations(): Seq[Migration] = Seq.empty
     override def init(): Future[Done] = Future.successful(Done)
     override def drop(): Future[Done] = Future.successful(Done)
   }

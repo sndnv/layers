@@ -2,9 +2,9 @@ package io.github.sndnv.layers.telemetry.analytics
 
 import java.time.Instant
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
-import io.github.sndnv.layers.api.Formats._
+import io.github.sndnv.layers.api.Formats.*
 import io.github.sndnv.layers.telemetry.ApplicationInformation
 import io.github.sndnv.layers.telemetry.mocks.MockAnalyticsClient
 import io.github.sndnv.layers.testing.FileSystemHelpers

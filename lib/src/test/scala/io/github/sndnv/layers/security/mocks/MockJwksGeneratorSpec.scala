@@ -1,6 +1,6 @@
 package io.github.sndnv.layers.security.mocks
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 import io.github.sndnv.layers.testing.UnitSpec
 

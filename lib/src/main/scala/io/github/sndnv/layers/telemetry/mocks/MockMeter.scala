@@ -4,15 +4,15 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import java.util.function.Consumer
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 import io.opentelemetry.api.common.Attributes
-import io.opentelemetry.api.metrics._
+import io.opentelemetry.api.metrics.*
 import io.opentelemetry.context.Context
 
 @SuppressWarnings(Array("org.wartremover.warts.NonUnitStatements"))
 class MockMeter extends Meter with MockMeter.MeterContext { ctx: MockMeter.MeterContext =>
-  import MockMeter._
+  import MockMeter.*
 
   private[mocks] override val metrics: ConcurrentHashMap[String, AtomicLong] =
     new ConcurrentHashMap()

@@ -4,7 +4,7 @@ import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 import com.typesafe.config.ConfigRenderOptions
 import io.github.sndnv.layers.service.components.ComponentLoader.Context
-import io.github.sndnv.layers.service.components.internal._
+import io.github.sndnv.layers.service.components.internal.*
 import io.github.sndnv.layers.testing.UnitSpec
 
 class ComponentLoaderSpec extends UnitSpec {

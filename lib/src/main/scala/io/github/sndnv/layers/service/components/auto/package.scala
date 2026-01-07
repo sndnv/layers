@@ -5,7 +5,7 @@ import io.github.sndnv.layers.service.components.ComponentLoader.Context
 /**
   * Allows automatic wrapping and unwrapping of context and component values.
   *
-  * @see [[Context]] for more information and examples
+  * @see [[io.github.sndnv.layers.service.components.ComponentLoader.Context]] for more information and examples
   */
 package object auto {
   implicit def unwrappedComponent[T](implicit c: Component[T]): T =

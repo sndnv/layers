@@ -1,7 +1,7 @@
 package io.github.sndnv.layers.events
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 import io.github.sndnv.layers.testing.UnitSpec
 import org.apache.pekko.Done
@@ -13,7 +13,7 @@ import org.scalatest.concurrent.Eventually
 
 class DefaultEventCollectorSpec extends UnitSpec with Eventually {
   "A DefaultEventCollector" should "support subscribing to and publishing events" in withRetry {
-    import io.github.sndnv.layers.events.DefaultEventCollector._
+    import io.github.sndnv.layers.events.DefaultEventCollector.*
 
     val collector = DefaultEventCollector(name = "test-collector", config = config)
 
@@ -48,7 +48,7 @@ class DefaultEventCollectorSpec extends UnitSpec with Eventually {
   }
 
   it should "support subscriptions with event filtering" in withRetry {
-    import io.github.sndnv.layers.events.DefaultEventCollector._
+    import io.github.sndnv.layers.events.DefaultEventCollector.*
 
     val events = List(
       Event(name = "test-a"),
@@ -89,7 +89,7 @@ class DefaultEventCollectorSpec extends UnitSpec with Eventually {
   }
 
   it should "support a quiet period where subscriptions are allowed but messages are not sent" in withRetry {
-    import io.github.sndnv.layers.events.DefaultEventCollector._
+    import io.github.sndnv.layers.events.DefaultEventCollector.*
 
     val collector = DefaultEventCollector(name = "test-collector", config = config.copy(quietPeriod = 3.seconds))
 
@@ -126,7 +126,7 @@ class DefaultEventCollectorSpec extends UnitSpec with Eventually {
   }
 
   it should "support multiple subscriptions from the same subscriber" in withRetry {
-    import io.github.sndnv.layers.events.DefaultEventCollector._
+    import io.github.sndnv.layers.events.DefaultEventCollector.*
 
     val collector = DefaultEventCollector(name = "test-collector", config = config)
 
@@ -175,7 +175,7 @@ class DefaultEventCollectorSpec extends UnitSpec with Eventually {
   }
 
   it should "handle failures when publishing events" in withRetry {
-    import io.github.sndnv.layers.events.DefaultEventCollector._
+    import io.github.sndnv.layers.events.DefaultEventCollector.*
 
     val collector = DefaultEventCollector(name = "test-collector", config = config)
 

@@ -3,7 +3,7 @@ package io.github.sndnv.layers.service.actions
 import java.time.Instant
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.Failure
 import scala.util.Success
 
@@ -13,7 +13,7 @@ import org.apache.pekko.Done
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.ActorSystem
 import org.apache.pekko.actor.typed.Behavior
-import org.apache.pekko.actor.typed.scaladsl.AskPattern._
+import org.apache.pekko.actor.typed.scaladsl.AskPattern.*
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.scaladsl.TimerScheduler
 import org.apache.pekko.util.Timeout
@@ -309,9 +309,9 @@ object DefaultActionExecutor {
   private sealed trait Message
   private final case class ExecuteActionWithEvent(action: Action.WithEvent, event: Event) extends Message
   private final case class ExecuteActionWithSchedule(action: Action.WithSchedule, target: Instant) extends Message
-  private final case object PrepareNextSchedule extends Message
+  private case object PrepareNextSchedule extends Message
   private final case class GetHistory(replyTo: ActorRef[ActionExecutor.History]) extends Message
-  private final case object Stop extends Message
+  private case object Stop extends Message
 
   private final case class ActionCompleted(entry: ActionExecutor.History.Entry) extends Message
   private object ActionCompleted {
@@ -338,5 +338,5 @@ object DefaultActionExecutor {
       )
   }
 
-  private final object SchedulerKey
+  private object SchedulerKey
 }

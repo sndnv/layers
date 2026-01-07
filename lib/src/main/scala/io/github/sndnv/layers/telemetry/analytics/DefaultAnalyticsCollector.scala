@@ -3,13 +3,13 @@ package io.github.sndnv.layers.telemetry.analytics
 import java.time.Instant
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.Failure
 import scala.util.Success
 
 import io.github.sndnv.layers.telemetry.ApplicationInformation
-import org.apache.pekko.actor.typed._
-import org.apache.pekko.actor.typed.scaladsl.AskPattern._
+import org.apache.pekko.actor.typed.*
+import org.apache.pekko.actor.typed.scaladsl.AskPattern.*
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.scaladsl.TimerScheduler
 import org.apache.pekko.util.Timeout
@@ -199,12 +199,12 @@ object DefaultAnalyticsCollector {
   private final case class RecordEvent(name: String, attributes: Map[String, String]) extends Message
   private final case class RecordFailure(message: String) extends Message
   private final case class GetState(replyTo: ActorRef[AnalyticsEntry]) extends Message
-  private final case object Send extends Message
+  private case object Send extends Message
   private final case class PersistState(forceTransmit: Boolean) extends Message
-  private final case object LoadState extends Message
+  private case object LoadState extends Message
   private final case class StateLoaded(entry: AnalyticsEntry.Collected) extends Message
   private final case class StateTransmitted(successful: Boolean) extends Message
-  private final case object Stop extends Message
+  private case object Stop extends Message
 
   private object PersistStateTimerKey
 }

@@ -16,7 +16,7 @@ import org.apache.pekko.http.scaladsl.unmarshalling.Unmarshal
 
 class MetricsExporterSpec extends UnitSpec {
   "A Prometheus MetricsExporter" should "provide a Prometheus metrics endpoint" in {
-    import io.github.sndnv.layers.telemetry.metrics.MeterExtensions._
+    import io.github.sndnv.layers.telemetry.metrics.MeterExtensions.*
 
     val port = ports.dequeue()
 
@@ -41,7 +41,7 @@ class MetricsExporterSpec extends UnitSpec {
   }
 
   it should "support behaving as a proxy Prometheus registry" in {
-    import io.github.sndnv.layers.telemetry.metrics.MeterExtensions._
+    import io.github.sndnv.layers.telemetry.metrics.MeterExtensions.*
 
     val port = ports.dequeue()
 
