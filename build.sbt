@@ -176,9 +176,7 @@ addCommandAlias(
 
 addCommandAlias(
   name = "check",
-  // TODO - re-enable mima check
-  // value = "; dependencyUpdates; scalafmtSbtCheck; scalafmtCheck; Test/scalafmtCheck; mimaReportBinaryIssues"
-  value = "; dependencyUpdates; scalafmtSbtCheck; scalafmtCheck; Test/scalafmtCheck"
+  value = "; dependencyUpdates; scalafmtSbtCheck; scalafmtCheck; Test/scalafmtCheck; mimaReportBinaryIssues"
 )
 
 addCommandAlias(
