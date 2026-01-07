@@ -1,7 +1,7 @@
 package io.github.sndnv.layers.telemetry
 
-import io.github.sndnv.layers.api.{Metrics => ApiMetrics}
-import io.github.sndnv.layers.persistence.{Metrics => PersistenceMetrics}
+import io.github.sndnv.layers.api.Metrics as ApiMetrics
+import io.github.sndnv.layers.persistence.Metrics as PersistenceMetrics
 import io.github.sndnv.layers.telemetry.analytics.AnalyticsCollector
 import io.github.sndnv.layers.telemetry.mocks.MockApiMetrics
 import io.github.sndnv.layers.telemetry.mocks.MockPersistenceMetrics

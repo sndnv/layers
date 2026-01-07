@@ -4,7 +4,7 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 import io.github.sndnv.layers.telemetry.ApplicationInformation
 import io.github.sndnv.layers.telemetry.analytics.AnalyticsEntry
@@ -14,7 +14,7 @@ import org.apache.pekko.util.ByteString
 import play.api.libs.json.Json
 
 class FormatsSpec extends UnitSpec {
-  import io.github.sndnv.layers.api.Formats._
+  import io.github.sndnv.layers.api.Formats.*
 
   "Formats" should "convert durations to/from JSON" in {
     val duration = 42.seconds

@@ -1,7 +1,7 @@
 package io.github.sndnv.layers.security.keys
 
 import scala.collection.mutable
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.Failure
 import scala.util.Success
 import scala.util.control.NonFatal

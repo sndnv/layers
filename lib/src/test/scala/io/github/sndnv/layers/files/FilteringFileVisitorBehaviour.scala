@@ -3,14 +3,17 @@ package io.github.sndnv.layers.files
 import java.nio.file.AccessDeniedException
 import java.nio.file.Files
 
+import scala.jdk.CollectionConverters.*
+
 import io.github.sndnv.layers.testing.FileSystemHelpers
 import io.github.sndnv.layers.testing.FileSystemHelpers.FileSystemSetup
 import io.github.sndnv.layers.testing.UnitSpec
-import org.mockito.captor.ArgCaptor
-import org.mockito.scalatest.AsyncMockitoSugar
+import org.mockito.ArgumentCaptor
+import org.mockito.ArgumentMatchers
+import org.mockito.Mockito.*
 import org.slf4j.Logger
 
-trait FilteringFileVisitorBehaviour { _: UnitSpec with FileSystemHelpers with AsyncMockitoSugar =>
+trait FilteringFileVisitorBehaviour { self: UnitSpec & FileSystemHelpers =>
   def visitor(setup: FileSystemSetup): Unit = {
     it should "collect files and handle failures based on a provided path matcher" in {
       val (fs, _) = createMockFileSystem(setup)
@@ -77,8 +80,8 @@ trait FilteringFileVisitorBehaviour { _: UnitSpec with FileSystemHelpers with As
     it should "support providing only successfully collected files" in {
       val (fs, _) = createMockFileSystem(setup)
 
-      val logger = mock[Logger]
-      val captor = ArgCaptor[String]
+      val logger = mock(classOf[Logger])
+      val captor = ArgumentCaptor.forClass(classOf[String])
 
       val successful = Seq(fs.getPath("/test"))
       val failed = Seq(fs.getPath("/test/1") -> "Test failure #1", fs.getPath("/test/2") -> "Test failure #2")
@@ -88,12 +91,12 @@ trait FilteringFileVisitorBehaviour { _: UnitSpec with FileSystemHelpers with As
       result.successful(logger) should be(successful)
 
       verify(logger, times(2)).debug(
-        eqTo("Visiting entity [{}] failed with [{}]"),
+        ArgumentMatchers.eq("Visiting entity [{}] failed with [{}]"),
         captor.capture,
         captor.capture
       )
 
-      captor.values.take(2) match {
+      captor.getAllValues.asScala.toList.take(2) match {
         case path :: failure :: Nil =>
           path should be("/test/1")
           failure should be("Test failure #1")
@@ -102,7 +105,7 @@ trait FilteringFileVisitorBehaviour { _: UnitSpec with FileSystemHelpers with As
           fail(s"Unexpected result received: [$other]")
       }
 
-      captor.values.takeRight(2) match {
+      captor.getAllValues.asScala.toList.takeRight(2) match {
         case path :: failure :: Nil =>
           path should be("/test/2")
           failure should be("Test failure #2")

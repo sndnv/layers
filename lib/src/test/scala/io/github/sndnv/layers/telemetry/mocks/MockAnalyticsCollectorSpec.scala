@@ -1,6 +1,6 @@
 package io.github.sndnv.layers.telemetry.mocks
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 import io.github.sndnv.layers.testing.UnitSpec
 import org.scalatest.concurrent.Eventually

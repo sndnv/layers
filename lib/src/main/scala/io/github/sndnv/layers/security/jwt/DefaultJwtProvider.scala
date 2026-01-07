@@ -2,9 +2,9 @@ package io.github.sndnv.layers.security.jwt
 
 import java.time.Instant
 
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
+import scala.concurrent.duration.*
 
 import io.github.sndnv.layers.persistence.KeyValueStore
 import io.github.sndnv.layers.persistence.memory.MemoryStore

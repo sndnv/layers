@@ -3,7 +3,7 @@ package io.github.sndnv.layers.security.mocks
 import java.util.concurrent.ThreadLocalRandom
 
 import io.github.sndnv.layers.security.keys.Generators
-import org.jose4j.jwk._
+import org.jose4j.jwk.*
 
 object MockJwksGenerator {
   def generateJwks(
@@ -23,7 +23,7 @@ object MockJwksGenerator {
         rsaKeys ++ ecKeys ++ secretKeys ++ secretKeysWithoutIds
       )
 
-    new JsonWebKeySet(keys: _*)
+    new JsonWebKeySet(keys*)
   }
 
   def generateRandomRsaKeys(count: Int, keyPrefix: Option[String]): Seq[RsaJsonWebKey] =

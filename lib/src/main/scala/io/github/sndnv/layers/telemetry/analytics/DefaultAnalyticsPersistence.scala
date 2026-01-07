@@ -1,15 +1,15 @@
 package io.github.sndnv.layers.telemetry.analytics
 
-import java.nio.file.attribute.PosixFilePermissions
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import java.nio.file.attribute.PosixFilePermissions
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicReference
 
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
+import scala.concurrent.duration.*
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
@@ -54,7 +54,7 @@ class DefaultAnalyticsPersistence(
       Files.write(
         config.localCache,
         content,
-        DefaultAnalyticsPersistence.Defaults.CacheFileWriteOptions: _*
+        DefaultAnalyticsPersistence.Defaults.CacheFileWriteOptions*
       )
     }
 

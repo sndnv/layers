@@ -1,10 +1,11 @@
 package io.github.sndnv.layers.service.config
 
 import io.github.sndnv.layers.testing.UnitSpec
-import org.mockito.scalatest.AsyncMockitoSugar
+import org.mockito.ArgumentMatchers
+import org.mockito.Mockito.*
 import org.slf4j.Logger
 
-class ConfigVerifierSpec extends UnitSpec with AsyncMockitoSugar {
+class ConfigVerifierSpec extends UnitSpec {
   "A ConfigVerifier" should "support parsing environment variable deprecations from raw config file content" in {
     val actual = ConfigVerifier.parseDeprecations(content = configContent)
 
@@ -24,7 +25,7 @@ class ConfigVerifierSpec extends UnitSpec with AsyncMockitoSugar {
   }
 
   it should "support processing environment variable deprecations" in {
-    implicit val logger: Logger = mock[Logger]
+    implicit val logger: Logger = mock(classOf[Logger])
 
     ConfigVerifier.processDeprecations(
       deprecations = Seq(
@@ -75,7 +76,7 @@ class ConfigVerifierSpec extends UnitSpec with AsyncMockitoSugar {
   }
 
   it should "support verifying config files (as resource, without file extension)" in {
-    implicit val logger: Logger = mock[Logger]
+    implicit val logger: Logger = mock(classOf[Logger])
 
     ConfigVerifier.verify(configBasename = "verification-test", envVars = Set("A_B_F_OLD"))
 
@@ -90,7 +91,7 @@ class ConfigVerifierSpec extends UnitSpec with AsyncMockitoSugar {
   }
 
   it should "support verifying config files (as resource, with file extension)" in {
-    implicit val logger: Logger = mock[Logger]
+    implicit val logger: Logger = mock(classOf[Logger])
 
     ConfigVerifier.verify(configBasename = "verification-test.conf", envVars = Set("A_B_F_OLD"))
 
@@ -105,7 +106,7 @@ class ConfigVerifierSpec extends UnitSpec with AsyncMockitoSugar {
   }
 
   it should "support verifying config files (from file system, without file extension)" in {
-    implicit val logger: Logger = mock[Logger]
+    implicit val logger: Logger = mock(classOf[Logger])
 
     ConfigVerifier.verify(configBasename = "lib/src/test/resources/verification-test", envVars = Set("A_B_F_OLD"))
 
@@ -120,7 +121,7 @@ class ConfigVerifierSpec extends UnitSpec with AsyncMockitoSugar {
   }
 
   it should "support verifying config files (from file system, with file extension)" in {
-    implicit val logger: Logger = mock[Logger]
+    implicit val logger: Logger = mock(classOf[Logger])
 
     ConfigVerifier.verify(configBasename = "lib/src/test/resources/verification-test.conf", envVars = Set("A_B_F_OLD"))
 
@@ -135,43 +136,43 @@ class ConfigVerifierSpec extends UnitSpec with AsyncMockitoSugar {
   }
 
   it should "handle failures during config file verification" in {
-    implicit val logger: Logger = mock[Logger]
+    implicit val logger: Logger = mock(classOf[Logger])
 
     ConfigVerifier.verify(configBasename = "missing.conf")
 
     verify(logger).error(
-      eqTo("Configuration verification for [{}] failed with [{} - {}]"),
-      any[String],
-      eqTo("FileNotFoundException"),
-      eqTo("missing.conf (No such file or directory)")
+      ArgumentMatchers.eq("Configuration verification for [{}] failed with [{} - {}]"),
+      ArgumentMatchers.any[String],
+      ArgumentMatchers.eq("FileNotFoundException"),
+      ArgumentMatchers.eq("missing.conf (No such file or directory)")
     )
 
     succeed
   }
 
   it should "support verifying the default confing file" in {
-    implicit val logger: Logger = mock[Logger]
+    implicit val logger: Logger = mock(classOf[Logger])
 
     ConfigVerifier.verify()
 
     verify(logger, never).warn(
-      eqTo("Environment variable [{}] for parameter [{}] is deprecated"),
-      any[String],
-      any[String]
+      ArgumentMatchers.eq("Environment variable [{}] for parameter [{}] is deprecated"),
+      ArgumentMatchers.any[String],
+      ArgumentMatchers.any[String]
     )
 
     verify(logger, never).warn(
-      eqTo("Environment variable [{}] for parameter [{}] is deprecated; use [{}] instead"),
-      any[String],
-      any[String],
-      any[String]
+      ArgumentMatchers.eq("Environment variable [{}] for parameter [{}] is deprecated; use [{}] instead"),
+      ArgumentMatchers.any[String],
+      ArgumentMatchers.any[String],
+      ArgumentMatchers.any[String]
     )
 
     verify(logger, never).error(
-      eqTo("Configuration verification for [{}] failed with [{} - {}]"),
-      any[String],
-      any[String],
-      any[String]
+      ArgumentMatchers.eq("Configuration verification for [{}] failed with [{} - {}]"),
+      ArgumentMatchers.any[String],
+      ArgumentMatchers.any[String],
+      ArgumentMatchers.any[String]
     )
 
     succeed

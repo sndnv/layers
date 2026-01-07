@@ -2,7 +2,7 @@ package io.github.sndnv.layers.api
 
 import scala.collection.mutable
 import scala.concurrent.Future
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 import io.github.sndnv.layers.security.tls.EndpointContext
 import io.github.sndnv.layers.testing.UnitSpec
@@ -11,17 +11,17 @@ import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.http.scaladsl.Http
 import org.apache.pekko.http.scaladsl.model.StatusCodes
 import org.apache.pekko.http.scaladsl.server.Directives
-import org.apache.pekko.http.scaladsl.server.Directives._
-import org.mockito.scalatest.AsyncMockitoSugar
+import org.apache.pekko.http.scaladsl.server.Directives.*
+import org.mockito.Mockito.*
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 import org.slf4j.Logger
 
-class EndpointSpec extends UnitSpec with BeforeAndAfterAll with Eventually with AsyncMockitoSugar {
+class EndpointSpec extends UnitSpec with BeforeAndAfterAll with Eventually {
   "An Endpoint" should "support starting itself" in {
     val port = ports.dequeue()
 
-    val logger = mock[Logger]
+    val logger = mock(classOf[Logger])
 
     val endpoint = new Endpoint {
       override def name: String = "test"
@@ -53,7 +53,7 @@ class EndpointSpec extends UnitSpec with BeforeAndAfterAll with Eventually with 
   it should "log binding failures" in {
     val port = 1
 
-    val logger = mock[Logger]
+    val logger = mock(classOf[Logger])
 
     val endpoint = new Endpoint {
       override def name: String = "test"

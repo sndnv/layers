@@ -3,7 +3,7 @@ package io.github.sndnv.layers.security.jwt
 import java.security.Key
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.control.NonFatal
 
 import io.github.sndnv.layers.security.keys.KeyProvider
@@ -13,8 +13,7 @@ import io.github.sndnv.layers.testing.UnitSpec
 import org.jose4j.jwk.JsonWebKey
 import org.jose4j.jws.AlgorithmIdentifiers
 
-trait JwtAuthenticatorBehaviour {
-  _: UnitSpec =>
+trait JwtAuthenticatorBehaviour { self: UnitSpec =>
   def authenticator(withKeyType: String, withJwk: JsonWebKey): Unit = {
     it should s"successfully authenticate valid tokens ($withKeyType)" in {
       implicit val telemetry: MockTelemetryContext = MockTelemetryContext()

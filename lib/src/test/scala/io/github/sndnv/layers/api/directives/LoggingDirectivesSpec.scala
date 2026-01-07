@@ -1,5 +1,7 @@
 package io.github.sndnv.layers.api.directives
 
+import scala.jdk.CollectionConverters.*
+
 import io.github.sndnv.layers.telemetry.TelemetryContext
 import io.github.sndnv.layers.telemetry.mocks.MockTelemetryContext
 import io.github.sndnv.layers.testing.UnitSpec
@@ -7,14 +9,15 @@ import org.apache.pekko.http.scaladsl.model.StatusCodes
 import org.apache.pekko.http.scaladsl.model.headers.RawHeader
 import org.apache.pekko.http.scaladsl.server.Directives
 import org.apache.pekko.http.scaladsl.testkit.ScalatestRouteTest
-import org.mockito.captor.ArgCaptor
-import org.mockito.scalatest.AsyncMockitoSugar
+import org.mockito.ArgumentCaptor
+import org.mockito.ArgumentMatchers
+import org.mockito.Mockito.*
 import org.slf4j.Logger
 
-class LoggingDirectivesSpec extends UnitSpec with ScalatestRouteTest with AsyncMockitoSugar {
+class LoggingDirectivesSpec extends UnitSpec with ScalatestRouteTest {
   "LoggingDirectives" should "log requests and responses" in {
-    val logger = mock[Logger]
-    val captor = ArgCaptor[String]
+    val logger = mock(classOf[Logger])
+    val captor = ArgumentCaptor.forClass(classOf[String])
 
     val context = MockTelemetryContext()
 
@@ -31,7 +34,7 @@ class LoggingDirectivesSpec extends UnitSpec with ScalatestRouteTest with AsyncM
       status should be(StatusCodes.OK)
 
       verify(logger).debug(
-        eqTo("Received [{}] request for [{}] with ID [{}], query parameters [{}] and headers [{}]"),
+        ArgumentMatchers.eq("Received [{}] request for [{}] with ID [{}], query parameters [{}] and headers [{}]"),
         captor.capture,
         captor.capture,
         captor.capture,
@@ -40,7 +43,7 @@ class LoggingDirectivesSpec extends UnitSpec with ScalatestRouteTest with AsyncM
       )
 
       verify(logger).debug(
-        eqTo("Responding to [{}] request for [{}] with ID [{}] and query parameters [{}]: [{}] with headers [{}]"),
+        ArgumentMatchers.eq("Responding to [{}] request for [{}] with ID [{}] and query parameters [{}]: [{}] with headers [{}]"),
         captor.capture,
         captor.capture,
         captor.capture,
@@ -49,7 +52,7 @@ class LoggingDirectivesSpec extends UnitSpec with ScalatestRouteTest with AsyncM
         captor.capture
       )
 
-      captor.values.take(5) match {
+      captor.getAllValues.asScala.toList.take(5) match {
         case method :: uri :: _ :: params :: headers :: Nil =>
           method should be("GET")
           uri should be("http://example.com/")
@@ -60,7 +63,7 @@ class LoggingDirectivesSpec extends UnitSpec with ScalatestRouteTest with AsyncM
           fail(s"Unexpected result received: [$other]")
       }
 
-      captor.values.takeRight(6) match {
+      captor.getAllValues.asScala.toList.takeRight(6) match {
         case method :: uri :: _ :: params :: status :: headers :: Nil =>
           method should be("GET")
           uri should be("http://example.com/")

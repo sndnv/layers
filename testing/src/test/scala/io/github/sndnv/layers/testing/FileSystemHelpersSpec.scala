@@ -7,7 +7,7 @@ import org.apache.pekko.actor.typed.scaladsl.Behaviors
 
 class FileSystemHelpersSpec extends UnitSpec with FileSystemHelpers {
   "FileSystemHelpers" should "support creating mock file systems (empty)" in {
-    import FileSystemHelpers._
+    import FileSystemHelpers.*
 
     val (_, createdObjects) = createMockFileSystem(setup = FileSystemSetup.empty)
 
@@ -23,7 +23,7 @@ class FileSystemHelpersSpec extends UnitSpec with FileSystemHelpers {
   }
 
   they should "support creating mock file systems (non-empty)" in {
-    import FileSystemHelpers._
+    import FileSystemHelpers.*
 
     val (_, createdObjects) = createMockFileSystem(setup = FileSystemSetup.Unix)
 
@@ -38,7 +38,7 @@ class FileSystemHelpersSpec extends UnitSpec with FileSystemHelpers {
   }
 
   they should "provide helper methods" in {
-    import FileSystemHelpers._
+    import FileSystemHelpers.*
 
     val (fs, _) = createMockFileSystem(setup = FileSystemSetup.Unix)
 

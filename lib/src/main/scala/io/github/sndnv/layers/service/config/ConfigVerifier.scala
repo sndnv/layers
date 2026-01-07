@@ -3,7 +3,7 @@ package io.github.sndnv.layers.service.config
 import java.io.File
 
 import scala.io.Source
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.Failure
 import scala.util.Success
 import scala.util.Using

@@ -6,9 +6,9 @@ import io.github.sndnv.layers.telemetry.mocks.MockTelemetryContext
 import io.github.sndnv.layers.testing.UnitSpec
 import org.apache.pekko.Done
 
-trait KeyValueStoreBehaviour { _: UnitSpec =>
+trait KeyValueStoreBehaviour { self: UnitSpec =>
   def keyValueStore[B <: KeyValueStore[String, Int]](
-    createStore: TelemetryContext => B,
+    createStore: (TelemetryContext, String) => B,
     before: B => Future[Done] = (store: B) => store.init(),
     after: B => Future[Done] = (store: B) => store.drop()
   ): Unit = {
@@ -18,7 +18,10 @@ trait KeyValueStoreBehaviour { _: UnitSpec =>
     it should "store and retrieve values" in withRetry {
       val telemetry: MockTelemetryContext = MockTelemetryContext()
 
-      val store = createStore(telemetry)
+      val store = createStore(telemetry, "test-store")
+
+      store.name() should be("test-store")
+      store.migrations() should be(empty)
 
       for {
         _ <- before(store)
@@ -39,7 +42,7 @@ trait KeyValueStoreBehaviour { _: UnitSpec =>
     it should "update existing values" in withRetry {
       val telemetry: MockTelemetryContext = MockTelemetryContext()
 
-      val store = createStore(telemetry)
+      val store = createStore(telemetry, "test-store")
       val updatedTestValue = 23
 
       for {
@@ -64,7 +67,10 @@ trait KeyValueStoreBehaviour { _: UnitSpec =>
     it should "fail to retrieve missing values" in withRetry {
       val telemetry: MockTelemetryContext = MockTelemetryContext()
 
-      val store = createStore(telemetry)
+      val store = createStore(telemetry, "test-store")
+
+      store.name() should be("test-store")
+      store.migrations() should be(empty)
 
       for {
         _ <- before(store)
@@ -84,7 +90,10 @@ trait KeyValueStoreBehaviour { _: UnitSpec =>
     it should "retrieve all values" in withRetry {
       val telemetry: MockTelemetryContext = MockTelemetryContext()
 
-      val store = createStore(telemetry)
+      val store = createStore(telemetry, "test-store")
+
+      store.name() should be("test-store")
+      store.migrations() should be(empty)
 
       for {
         _ <- before(store)
@@ -113,7 +122,10 @@ trait KeyValueStoreBehaviour { _: UnitSpec =>
     it should "delete values" in withRetry {
       val telemetry: MockTelemetryContext = MockTelemetryContext()
 
-      val store = createStore(telemetry)
+      val store = createStore(telemetry, "test-store")
+
+      store.name() should be("test-store")
+      store.migrations() should be(empty)
 
       for {
         _ <- before(store)
@@ -138,7 +150,10 @@ trait KeyValueStoreBehaviour { _: UnitSpec =>
     it should "check if values exist" in withRetry {
       val telemetry: MockTelemetryContext = MockTelemetryContext()
 
-      val store = createStore(telemetry)
+      val store = createStore(telemetry, "test-store")
+
+      store.name() should be("test-store")
+      store.migrations() should be(empty)
 
       for {
         _ <- before(store)
@@ -162,7 +177,10 @@ trait KeyValueStoreBehaviour { _: UnitSpec =>
     it should "reset itself" in withRetry {
       val telemetry: MockTelemetryContext = MockTelemetryContext()
 
-      val store = createStore(telemetry)
+      val store = createStore(telemetry, "test-store")
+
+      store.name() should be("test-store")
+      store.migrations() should be(empty)
 
       for {
         _ <- before(store)
@@ -196,7 +214,10 @@ trait KeyValueStoreBehaviour { _: UnitSpec =>
     it should "load multiple entries" in withRetry {
       val telemetry: MockTelemetryContext = MockTelemetryContext()
 
-      val store = createStore(telemetry)
+      val store = createStore(telemetry, "test-store")
+
+      store.name() should be("test-store")
+      store.migrations() should be(empty)
 
       for {
         _ <- before(store)

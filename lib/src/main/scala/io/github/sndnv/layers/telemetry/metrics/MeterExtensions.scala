@@ -2,7 +2,7 @@ package io.github.sndnv.layers.telemetry.metrics
 
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.common.Attributes
-import io.opentelemetry.api.metrics._
+import io.opentelemetry.api.metrics.*
 
 object MeterExtensions {
   implicit class ExtendedMeter(meter: Meter) {

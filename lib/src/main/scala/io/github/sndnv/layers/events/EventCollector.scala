@@ -41,7 +41,7 @@ trait EventCollector {
     * @return an events stream source
     */
   def subscribe(subscriber: AnyRef, eventName: String): Source[Event, NotUsed] =
-    subscribe(subscriber = subscriber, filter = Some { e: Event => e.name == eventName })
+    subscribe(subscriber = subscriber, filter = Some { (e: Event) => e.name == eventName })
 
   /**
     * Subscribes to events sent to this collector with names matching the specified regular expression.
@@ -51,7 +51,7 @@ trait EventCollector {
     * @return an events stream source
     */
   def subscribe(subscriber: AnyRef, eventName: Regex): Source[Event, NotUsed] =
-    subscribe(subscriber = subscriber, filter = Some { e: Event => eventName.matches(e.name) })
+    subscribe(subscriber = subscriber, filter = Some { (e: Event) => eventName.matches(e.name) })
 
   /**
     * Subscribes to events sent to this collector and applies the provided filtering function.

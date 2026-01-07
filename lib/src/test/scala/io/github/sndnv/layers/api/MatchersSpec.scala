@@ -8,12 +8,12 @@ import io.github.sndnv.layers.testing.UnitSpec
 import org.apache.pekko.http.scaladsl.model.StatusCodes
 import org.apache.pekko.http.scaladsl.model.Uri
 import org.apache.pekko.http.scaladsl.server.Directives
-import org.apache.pekko.http.scaladsl.server.Directives._
+import org.apache.pekko.http.scaladsl.server.Directives.*
 import org.apache.pekko.http.scaladsl.server.Route
 import org.apache.pekko.http.scaladsl.testkit.ScalatestRouteTest
 
 class MatchersSpec extends UnitSpec with ScalatestRouteTest {
-  import io.github.sndnv.layers.api.Matchers._
+  import io.github.sndnv.layers.api.Matchers.*
 
   "Matchers for timestamps" should "match paths" in {
     val route = Route.seal(

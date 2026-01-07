@@ -5,7 +5,7 @@ import java.time.LocalTime
 import java.time.ZoneOffset
 
 import scala.concurrent.Future
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 import io.github.sndnv.layers.events.Event
 import io.github.sndnv.layers.events.EventCollector
@@ -17,11 +17,11 @@ import org.apache.pekko.actor.typed.ActorSystem
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.Timeout
-import org.mockito.scalatest.AsyncMockitoSugar
+import org.mockito.Mockito.*
 import org.scalatest.concurrent.Eventually
 import org.slf4j.Logger
 
-class DefaultActionExecutorSpec extends UnitSpec with Eventually with AsyncMockitoSugar {
+class DefaultActionExecutorSpec extends UnitSpec with Eventually {
   "A DefaultActionExecutor" should "provide next scheduled action" in withRetry {
     import DefaultActionExecutor.ExtendedDefinitionsWithSchedules
 
@@ -239,7 +239,7 @@ class DefaultActionExecutorSpec extends UnitSpec with Eventually with AsyncMocki
   it should "monitor event stream completion (successful)" in withRetry {
     import DefaultActionExecutor.ExtendedEventStreamResult
 
-    implicit val logger: Logger = mock[Logger]
+    implicit val logger: Logger = mock(classOf[Logger])
 
     Future
       .successful(Done)
@@ -257,7 +257,7 @@ class DefaultActionExecutorSpec extends UnitSpec with Eventually with AsyncMocki
   it should "monitor event stream completion (failed)" in withRetry {
     import DefaultActionExecutor.ExtendedEventStreamResult
 
-    implicit val logger: Logger = mock[Logger]
+    implicit val logger: Logger = mock(classOf[Logger])
 
     Future
       .failed(new RuntimeException("Test failure"))

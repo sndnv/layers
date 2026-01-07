@@ -2,13 +2,13 @@ package io.github.sndnv.layers.security.mocks
 
 import java.security.PublicKey
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 import io.github.sndnv.layers.api.mocks.MockEndpoint
 import io.github.sndnv.layers.security.tls.EndpointContext
 import org.apache.pekko.actor.typed.ActorSystem
 import org.apache.pekko.http.scaladsl.model.StatusCodes
-import org.apache.pekko.http.scaladsl.server.Directives._
+import org.apache.pekko.http.scaladsl.server.Directives.*
 import org.apache.pekko.http.scaladsl.server.Route
 import org.jose4j.jwk.JsonWebKeySet
 

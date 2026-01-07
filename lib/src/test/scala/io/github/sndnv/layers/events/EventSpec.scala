@@ -6,7 +6,7 @@ import java.util.UUID
 import scala.util.Failure
 import scala.util.Success
 
-import io.github.sndnv.layers.events.Event._
+import io.github.sndnv.layers.events.Event.*
 import io.github.sndnv.layers.events.EventSpec.OtherType
 import io.github.sndnv.layers.events.mocks.MockEventCollector
 import io.github.sndnv.layers.testing.UnitSpec

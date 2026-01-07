@@ -13,7 +13,7 @@ import slick.jdbc.meta.MTable
 class MigrationExecutorSpec extends UnitSpec with TestSlickDatabase {
   "A Default MigrationExecutor" should "execute migrations for stores" in withRetry {
     withStore { (profile, h2db) =>
-      import profile.api._
+      import profile.api.*
 
       val migrations = Seq(
         Migration(
@@ -95,8 +95,9 @@ class MigrationExecutorSpec extends UnitSpec with TestSlickDatabase {
     }
   }
 
-  private class TestStore(override val migrations: Seq[Migration]) extends Store {
-    override val name: String = "test-store"
+  private class TestStore(withMigrations: Seq[Migration]) extends Store {
+    override def name(): String = "test-store"
+    override def migrations(): Seq[Migration] = withMigrations
     override def init(): Future[Done] = Future.successful(Done)
     override def drop(): Future[Done] = Future.successful(Done)
   }

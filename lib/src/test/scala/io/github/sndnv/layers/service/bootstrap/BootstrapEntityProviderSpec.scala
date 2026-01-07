@@ -7,7 +7,7 @@ import io.github.sndnv.layers.testing.UnitSpec
 import org.apache.pekko.Done
 
 class BootstrapEntityProviderSpec extends UnitSpec {
-  import BootstrapEntityProviderSpec._
+  import BootstrapEntityProviderSpec.*
 
   "A BootstrapEntityProvider" should "support extracting field names from entities" in {
     BootstrapEntityProvider.fieldNameFrom[TestClass, String](entities, _.a) should be("a")

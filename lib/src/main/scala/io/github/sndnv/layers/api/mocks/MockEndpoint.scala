@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.AtomicReference
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.Failure
 import scala.util.Success
 import scala.util.control.NonFatal
@@ -20,7 +20,7 @@ import org.apache.pekko.http.scaladsl.model.HttpEntity
 import org.apache.pekko.http.scaladsl.model.HttpMethod
 import org.apache.pekko.http.scaladsl.model.StatusCode
 import org.apache.pekko.http.scaladsl.model.StatusCodes
-import org.apache.pekko.http.scaladsl.server.Directives._
+import org.apache.pekko.http.scaladsl.server.Directives.*
 import org.apache.pekko.http.scaladsl.server.ExceptionHandler
 import org.apache.pekko.http.scaladsl.server.RejectionHandler
 import org.apache.pekko.http.scaladsl.server.Route

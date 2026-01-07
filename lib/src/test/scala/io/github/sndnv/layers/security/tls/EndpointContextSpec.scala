@@ -6,7 +6,7 @@ import java.security.cert.CertificateExpiredException
 import java.security.cert.CertificateNotYetValidException
 
 import scala.collection.mutable
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
@@ -19,7 +19,7 @@ import org.apache.pekko.http.scaladsl.model.HttpRequest
 import org.apache.pekko.http.scaladsl.model.HttpResponse
 import org.apache.pekko.http.scaladsl.model.StatusCodes
 import org.apache.pekko.http.scaladsl.server.Directives
-import org.apache.pekko.http.scaladsl.server.Directives._
+import org.apache.pekko.http.scaladsl.server.Directives.*
 import org.apache.pekko.util.ByteString
 
 class EndpointContextSpec extends UnitSpec {

@@ -2,7 +2,7 @@ package io.github.sndnv.layers.service.bootstrap
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.Try
 import scala.util.control.NonFatal
 
@@ -16,7 +16,7 @@ trait BootstrapExecutor {
 
 object BootstrapExecutor {
   class Default(
-    entityProviders: Seq[BootstrapEntityProvider[_ <: Product]]
+    entityProviders: Seq[BootstrapEntityProvider[? <: Product]]
   )(implicit ec: ExecutionContext)
       extends BootstrapExecutor {
     private implicit val log: Logger = LoggerFactory.getLogger(this.getClass.getName)
@@ -42,7 +42,7 @@ object BootstrapExecutor {
   }
 
   def apply(
-    entityProviders: Seq[BootstrapEntityProvider[_ <: Product]]
+    entityProviders: Seq[BootstrapEntityProvider[? <: Product]]
   )(implicit ec: ExecutionContext): BootstrapExecutor =
     new Default(entityProviders)
 

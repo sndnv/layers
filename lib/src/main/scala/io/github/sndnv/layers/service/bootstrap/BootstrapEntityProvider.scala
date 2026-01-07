@@ -20,7 +20,7 @@ trait BootstrapEntityProvider[T <: Product] {
   def extractId(entity: EntityType): String
 
   protected def requireNonDuplicateField[V](entities: Seq[T], field: T => V)(implicit tag: ClassTag[T]): Future[Done] =
-    BootstrapEntityProvider.requireNonDuplicateField[T, V](entities, field)
+    BootstrapEntityProvider.requireNonDuplicateField[T, V](entities, field)(tag)
 }
 
 object BootstrapEntityProvider {

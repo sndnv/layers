@@ -8,19 +8,21 @@ import io.github.sndnv.layers.persistence.Metrics
 import io.github.sndnv.layers.persistence.migration.Migration
 import io.github.sndnv.layers.telemetry.TelemetryContext
 import org.apache.pekko.Done
-import org.apache.pekko.actor.typed._
-import org.apache.pekko.actor.typed.scaladsl.AskPattern._
+import org.apache.pekko.actor.typed.*
+import org.apache.pekko.actor.typed.scaladsl.AskPattern.*
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.util.Timeout
 
 class MemoryStore[K, V] private (
-  val name: String,
+  storeName: String,
   storeRef: ActorRef[MemoryStore.Message[K, V]]
 )(implicit scheduler: Scheduler, ec: ExecutionContext, timeout: Timeout, telemetry: TelemetryContext)
     extends KeyValueStore[K, V] {
-  import MemoryStore._
+  import MemoryStore.*
 
-  override val migrations: Seq[Migration] = Seq.empty
+  override def name(): String = storeName
+
+  override def migrations(): Seq[Migration] = Seq.empty
 
   private val metrics = telemetry.metrics[Metrics.Store]
 
@@ -33,23 +35,23 @@ class MemoryStore[K, V] private (
         result
       }
 
-  override def put(key: K, value: V): Future[Done] = metrics.recordPut(store = name) {
+  override def put(key: K, value: V): Future[Done] = metrics.recordPut(store = storeName) {
     storeRef ? ((ref: ActorRef[Done]) => Put(key, value, ref))
   }
 
-  override def delete(key: K): Future[Boolean] = metrics.recordDelete(store = name) {
+  override def delete(key: K): Future[Boolean] = metrics.recordDelete(store = storeName) {
     storeRef ? ((ref: ActorRef[Boolean]) => Remove(key, ref))
   }
 
-  override def get(key: K): Future[Option[V]] = metrics.recordGet(store = name) {
+  override def get(key: K): Future[Option[V]] = metrics.recordGet(store = storeName) {
     storeRef ? ((ref: ActorRef[Option[V]]) => Get(key, ref))
   }
 
-  override def contains(key: K): Future[Boolean] = metrics.recordContains(store = name) {
+  override def contains(key: K): Future[Boolean] = metrics.recordContains(store = storeName) {
     (storeRef ? ((ref: ActorRef[Option[V]]) => Get(key, ref))).map(_.isDefined)
   }
 
-  override def entries: Future[Map[K, V]] = metrics.recordList(store = name) {
+  override def entries: Future[Map[K, V]] = metrics.recordList(store = storeName) {
     storeRef ? ((ref: ActorRef[Map[K, V]]) => GetAll(ref))
   }
 
@@ -74,7 +76,7 @@ object MemoryStore {
     implicit val ec: ExecutionContext = s.executionContext
 
     new MemoryStore[K, V](
-      name = name,
+      storeName = name,
       storeRef = s.systemActorOf(store(Map.empty[K, V]), name = s"$name-${java.util.UUID.randomUUID().toString}")
     )
   }

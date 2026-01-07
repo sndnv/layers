@@ -9,13 +9,13 @@ import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import java.util.concurrent.ThreadLocalRandom
 
-import javax.net.ssl._
+import javax.net.ssl.*
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.Random
 import scala.util.Try
 
-import com.typesafe.{config => typesafe}
+import com.typesafe.config as typesafe
 import org.apache.pekko.http.scaladsl.ConnectionContext
 import org.apache.pekko.http.scaladsl.HttpsConnectionContext
 import org.apache.pekko.http.scaladsl.ServerBuilder

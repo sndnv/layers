@@ -5,6 +5,10 @@ on: [ push, pull_request ]
 jobs:
   scala:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        scalaVersion: [ "2.13.x", "3.3.x" ]
 
     steps:
       - uses: actions/checkout@v4
@@ -22,7 +26,7 @@ jobs:
       - name: Run QA
         run: |
           mkdir ${{ github.workspace }}/target
-          sbt qa
+          sbt ++${{ matrix.scalaVersion }} qa
 
       - name: Push Coverage Result
         uses: codecov/codecov-action@v4

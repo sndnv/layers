@@ -85,7 +85,7 @@ import io.github.sndnv.layers.service.components.internal.DynamicComponentClassL
   * @see [[ComponentLoader.TargetLoader.Dynamic]] for details on dynamic component loading
   */
 sealed trait ComponentLoader[Comp, Ctx] {
-  import ComponentLoader._
+  import ComponentLoader.*
 
   /**
     * Component loader name.
@@ -284,9 +284,9 @@ object ComponentLoader {
         case other               => Custom(name = other)
       }
 
-    final case object NoOp extends TargetType
-    final case object Default extends TargetType
-    final case object Dynamic extends TargetType
+    case object NoOp extends TargetType
+    case object Default extends TargetType
+    case object Dynamic extends TargetType
     final case class Custom(name: String) extends TargetType
   }
 

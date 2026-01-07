@@ -1,7 +1,7 @@
 package io.github.sndnv.layers.files
 
 import java.io.IOException
-import java.nio.file._
+import java.nio.file.*
 import java.nio.file.attribute.BasicFileAttributes
 
 import org.slf4j.Logger

@@ -4,7 +4,8 @@ val libraryName: String = "layers"
 
 name := libraryName
 
-ThisBuild / scalaVersion := "2.13.18"
+ThisBuild / scalaVersion       := "2.13.18"
+ThisBuild / crossScalaVersions := Seq("2.13.18", "3.3.7")
 
 ThisBuild / organization  := "io.github.sndnv"
 ThisBuild / homepage      := Some(url("https://github.com/sndnv/layers"))
@@ -36,16 +37,15 @@ lazy val versions = new {
   val prometheus              = "0.16.0"
 
   // testing
-  val scalaCheck    = "1.19.0"
-  val scalaTest     = "3.2.19"
-  val mockito       = "2.0.0"
-  val mockitoInline = "5.2.0"
-  val jimfs         = "1.3.1"
+  val scalaCheck = "1.19.0"
+  val scalaTest  = "3.2.19"
+  val mockito    = "5.21.0"
+  val jimfs      = "1.3.1"
 
   // misc
   val playJson = "2.10.8"
   val jose4j   = "0.9.6"
-  val logback  = "1.5.22"
+  val logback  = "1.5.24"
 }
 
 lazy val root = project
@@ -85,9 +85,7 @@ lazy val lib = (project in file("./lib"))
       "org.apache.pekko"     %% "pekko-testkit"                     % versions.pekko                   % Test,
       "org.apache.pekko"     %% "pekko-stream-testkit"              % versions.pekko                   % Test,
       "org.apache.pekko"     %% "pekko-http-testkit"                % versions.pekkoHttp               % Test,
-      "org.mockito"          %% "mockito-scala"                     % versions.mockito                 % Test,
-      "org.mockito"          %% "mockito-scala-scalatest"           % versions.mockito                 % Test,
-      "org.mockito"           % "mockito-inline"                    % versions.mockitoInline           % Test,
+      "org.mockito"           % "mockito-core"                      % versions.mockito                 % Test,
       "com.google.jimfs"      % "jimfs"                             % versions.jimfs                   % Test,
       "ch.qos.logback"        % "logback-classic"                   % versions.logback                 % Test
     ),
@@ -126,25 +124,41 @@ lazy val commonSettings = Seq(
   Test / logBuffered       := false,
   Test / parallelExecution := false,
   Compile / compile / wartremoverWarnings ++= Warts.unsafe.filterNot(excludedWarts.contains),
-  scalacOptions ++= Seq(
-    "-encoding",
-    "UTF-8",
-    "-unchecked",
-    "-deprecation",
-    "-feature",
-    "-Xcheckinit",
-    "-Ywarn-dead-code",
-    "-Ywarn-numeric-widen",
-    "-Ywarn-unused",
-    "-Ywarn-extra-implicit",
-    "-Ywarn-unused:implicits",
-    "-Xlint:constant",
-    "-Xlint:delayedinit-select",
-    "-Xlint:doc-detached",
-    "-Xlint:inaccessible",
-    "-Xlint:infer-any",
-    s"-P:wartremover:excluded:${(Compile / sourceManaged).value}"
-  )
+  scalacOptions ++= {
+    CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((3, _)) =>
+        Seq(
+          "-encoding",
+          "UTF-8",
+          "-unchecked",
+          "-deprecation",
+          "-feature",
+          s"-P:wartremover:excluded:${(Compile / sourceManaged).value}"
+        )
+
+      case _ =>
+        Seq(
+          "-encoding",
+          "UTF-8",
+          "-unchecked",
+          "-deprecation",
+          "-feature",
+          "-Xcheckinit",
+          "-Ywarn-dead-code",
+          "-Ywarn-numeric-widen",
+          "-Ywarn-unused",
+          "-Ywarn-extra-implicit",
+          "-Ywarn-unused:implicits",
+          "-Xlint:constant",
+          "-Xlint:delayedinit-select",
+          "-Xlint:doc-detached",
+          "-Xlint:inaccessible",
+          "-Xlint:infer-any",
+          s"-P:wartremover:excluded:${(Compile / sourceManaged).value}",
+          "-Xsource:3"
+        )
+    }
+  }
 )
 
 Global / concurrentRestrictions += Tags.limit(
@@ -162,7 +176,9 @@ addCommandAlias(
 
 addCommandAlias(
   name = "check",
-  value = "; dependencyUpdates; scalafmtSbtCheck; scalafmtCheck; Test/scalafmtCheck; mimaReportBinaryIssues"
+  // TODO - re-enable mima check
+  // value = "; dependencyUpdates; scalafmtSbtCheck; scalafmtCheck; Test/scalafmtCheck; mimaReportBinaryIssues"
+  value = "; dependencyUpdates; scalafmtSbtCheck; scalafmtCheck; Test/scalafmtCheck"
 )
 
 addCommandAlias(

@@ -1,6 +1,6 @@
 package io.github.sndnv.layers.api
 
-import io.github.sndnv.layers.telemetry.metrics.MeterExtensions._
+import io.github.sndnv.layers.telemetry.metrics.MeterExtensions.*
 import io.github.sndnv.layers.telemetry.metrics.MetricsProvider
 import io.opentelemetry.api.common.AttributeKey
 import io.opentelemetry.api.metrics.Meter

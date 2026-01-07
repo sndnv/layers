@@ -3,7 +3,7 @@ package io.github.sndnv.layers.api.directives
 import io.github.sndnv.layers.streaming.Operators.ExtendedSource
 import org.apache.pekko.http.scaladsl.server.Directive
 import org.apache.pekko.http.scaladsl.server.Directive0
-import org.apache.pekko.http.scaladsl.server.Directives._
+import org.apache.pekko.http.scaladsl.server.Directives.*
 
 trait EntityDiscardingDirectives {
 

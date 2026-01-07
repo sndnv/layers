@@ -2,7 +2,7 @@ package io.github.sndnv.layers.security.keys
 
 import java.security.spec.ECParameterSpec
 
-import org.jose4j.jwk._
+import org.jose4j.jwk.*
 import org.jose4j.jws.AlgorithmIdentifiers
 import org.jose4j.keys.EllipticCurves
 

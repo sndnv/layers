@@ -3,7 +3,7 @@ package io.github.sndnv.layers.api
 import java.nio.charset.StandardCharsets
 import java.util.UUID
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 import io.github.sndnv.layers.security.tls.EndpointContext
 import io.github.sndnv.layers.telemetry.analytics.AnalyticsEntry
@@ -11,7 +11,7 @@ import org.apache.pekko.http.scaladsl.model.Uri
 import org.apache.pekko.util.ByteString
 
 object Formats {
-  import play.api.libs.json._
+  import play.api.libs.json.*
 
   implicit val jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 

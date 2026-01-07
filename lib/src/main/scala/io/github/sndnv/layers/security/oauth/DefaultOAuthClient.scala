@@ -12,11 +12,11 @@ import io.github.sndnv.layers.security.tls.EndpointContext
 import io.github.sndnv.layers.streaming.Operators.ExtendedSource
 import io.github.sndnv.layers.telemetry.TelemetryContext
 import org.apache.pekko.actor.typed.ActorSystem
-import org.apache.pekko.http.scaladsl.model._
-import org.apache.pekko.http.scaladsl.model.headers.BasicHttpCredentials
-import org.apache.pekko.http.scaladsl.unmarshalling.Unmarshal
 import org.apache.pekko.http.scaladsl.Http
 import org.apache.pekko.http.scaladsl.HttpsConnectionContext
+import org.apache.pekko.http.scaladsl.model.*
+import org.apache.pekko.http.scaladsl.model.headers.BasicHttpCredentials
+import org.apache.pekko.http.scaladsl.unmarshalling.Unmarshal
 
 class DefaultOAuthClient(
   override val tokenEndpoint: String,
@@ -100,7 +100,7 @@ class DefaultOAuthClient(
       }
       .flatMap {
         case HttpResponse(code, _, entity, _) if code.isSuccess() =>
-          import com.github.pjfanning.pekkohttpplayjson.PlayJsonSupport._
+          import com.github.pjfanning.pekkohttpplayjson.PlayJsonSupport.*
 
           Unmarshal(entity)
             .to[AccessTokenResponse]
