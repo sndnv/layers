@@ -11,11 +11,18 @@ trait AnalyticsCollector {
   def recordEvent(name: String, attributes: (String, String)*): Unit =
     recordEvent(name = name, attributes = attributes.toMap)
 
-  def recordFailure(e: Throwable): Unit = recordFailure(message = s"${e.getClass.getSimpleName} - ${e.getMessage}")
+  def recordFailure(e: Throwable): Unit =
+    recordFailure(
+      message = s"${e.getClass.getSimpleName} - ${e.getMessage}",
+      stackTrace = AnalyticsEntry.Failure.extractStackTrace(e)
+    )
+
+  def recordFailure(message: String): Unit =
+    recordFailure(message = message, stackTrace = None)
 
   def recordEvent(name: String, attributes: Map[String, String]): Unit
 
-  def recordFailure(message: String): Unit
+  def recordFailure(message: String, stackTrace: Option[String]): Unit
 
   def state: Future[AnalyticsEntry]
 
@@ -27,7 +34,7 @@ trait AnalyticsCollector {
 object AnalyticsCollector {
   object NoOp extends AnalyticsCollector {
     override def recordEvent(name: String, attributes: Map[String, String]): Unit = ()
-    override def recordFailure(message: String): Unit = ()
+    override def recordFailure(message: String, stackTrace: Option[String]): Unit = ()
     override def state: Future[AnalyticsEntry] = Future.successful(AnalyticsEntry.collected(app = ApplicationInformation.none))
     override def send(): Unit = ()
     override def persistence: Option[AnalyticsPersistence] = None

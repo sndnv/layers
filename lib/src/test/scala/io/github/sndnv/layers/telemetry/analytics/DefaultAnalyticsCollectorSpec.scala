@@ -66,16 +66,23 @@ class DefaultAnalyticsCollectorSpec extends UnitSpec with Eventually {
       app = ApplicationInformation.none
     )
 
-    collector.recordFailure(new RuntimeException("Test failure"))
-    collector.recordFailure("Other failure")
+    collector.recordFailure(e = new RuntimeException("Test failure"))
+    collector.recordFailure(message = "Other failure")
+    collector.recordFailure(message = "Other failure", stackTrace = Some("abc"))
 
     collector.state.map { state =>
       state.events should be(empty)
 
       state.failures.toList match {
-        case failure1 :: failure2 :: Nil =>
+        case failure1 :: failure2 :: failure3 :: Nil =>
           failure1.message should be("RuntimeException - Test failure")
+          failure1.stackTrace should not be empty
+
           failure2.message should be("Other failure")
+          failure2.stackTrace should be(empty)
+
+          failure3.message should be("Other failure")
+          failure3.stackTrace should be(Some("abc"))
 
         case other =>
           fail(s"Unexpected result received: [$other]")

@@ -25,27 +25,27 @@ lazy val versions = new {
   val pekko         = "1.4.0"
   val pekkoHttp     = "1.3.0"
   val pekkoHttpCors = "1.3.0"
-  val pekkoJson     = "3.7.0"
+  val pekkoJson     = "3.9.0"
 
   // persistence
   val slick = "3.6.1"
   val h2    = "2.4.240"
 
   // telemetry
-  val openTelemetry           = "1.57.0"
-  val openTelemetryPrometheus = "1.57.0-alpha"
+  val openTelemetry           = "1.60.1"
+  val openTelemetryPrometheus = "1.60.1-alpha"
   val prometheus              = "0.16.0"
 
   // testing
   val scalaCheck = "1.19.0"
   val scalaTest  = "3.2.19"
-  val mockito    = "5.21.0"
+  val mockito    = "5.23.0"
   val jimfs      = "1.3.1"
 
   // misc
   val playJson = "2.10.8"
   val jose4j   = "0.9.6"
-  val logback  = "1.5.24"
+  val logback  = "1.5.32"
 }
 
 lazy val root = project
@@ -92,7 +92,8 @@ lazy val lib = (project in file("./lib"))
     mimaPreviousArtifacts := git.gitDescribedVersion.value
       .flatMap(_.split("-").headOption)
       .map(version => organization.value %% moduleName.value % version)
-      .toSet
+      .toSet,
+    mimaFailOnProblem     := sys.env.getOrElse("MIMA_FAIL_ON_PROBLEM", "true").toBoolean
   )
   .dependsOn(testing % "test->compile")
 
@@ -113,7 +114,8 @@ lazy val testing = (project in file("./testing"))
     mimaPreviousArtifacts := git.gitDescribedVersion.value
       .flatMap(_.split("-").headOption)
       .map(version => organization.value %% moduleName.value % version)
-      .toSet
+      .toSet,
+    mimaFailOnProblem     := sys.env.getOrElse("MIMA_FAIL_ON_PROBLEM", "true").toBoolean
   )
 
 lazy val excludedWarts = Seq(
