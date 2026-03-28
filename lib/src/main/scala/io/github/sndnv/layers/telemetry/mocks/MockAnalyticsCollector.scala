@@ -18,8 +18,8 @@ class MockAnalyticsCollector extends AnalyticsCollector {
     val _ = entryRef.updateAndGet((entry: AnalyticsEntry.Collected) => entry.withEvent(name, attributes))
   }
 
-  override def recordFailure(message: String): Unit = {
-    val _ = entryRef.updateAndGet((entry: AnalyticsEntry.Collected) => entry.withFailure(message))
+  override def recordFailure(message: String, stackTrace: Option[String]): Unit = {
+    val _ = entryRef.updateAndGet((entry: AnalyticsEntry.Collected) => entry.withFailure(message, stackTrace))
   }
 
   override def state: Future[AnalyticsEntry] =

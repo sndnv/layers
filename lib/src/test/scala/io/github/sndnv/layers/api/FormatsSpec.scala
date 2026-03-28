@@ -75,7 +75,8 @@ class FormatsSpec extends UnitSpec {
     val original = AnalyticsEntry
       .collected(app = ApplicationInformation.none)
       .withEvent(name = "test-event", attributes = Map("a" -> "b", "c" -> "d"))
-      .withFailure(message = "Test failure")
+      .withFailure(message = "Test failure #1", stackTrace = None)
+      .withFailure(message = "Test failure #2", stackTrace = Some("xyz"))
 
     val entry: AnalyticsEntry = original
       .copy(
@@ -89,7 +90,7 @@ class FormatsSpec extends UnitSpec {
          |{
          |"runtime":{"id":"${entry.runtime.id}","app":"none;none;0","jre":"${entry.runtime.jre}","os":"${entry.runtime.os}"},
          |"events":[{"id":0,"event":"test-event{a='b',c='d'}"}],
-         |"failures":[{"message":"Test failure","timestamp":"$now"}],
+         |"failures":[{"message":"Test failure #1","timestamp":"$now"},{"message":"Test failure #2","timestamp":"$now","stack_trace":"xyz"}],
          |"created":"$now",
          |"updated":"$now",
          |"entry_type":"collected"

@@ -22,8 +22,8 @@ class DefaultAnalyticsCollector private (
   override def recordEvent(name: String, attributes: Map[String, String]): Unit =
     storeRef ! DefaultAnalyticsCollector.RecordEvent(name, attributes = attributes)
 
-  override def recordFailure(message: String): Unit =
-    storeRef ! DefaultAnalyticsCollector.RecordFailure(message = message)
+  override def recordFailure(message: String, stackTrace: Option[String]): Unit =
+    storeRef ! DefaultAnalyticsCollector.RecordFailure(message = message, stackTrace = stackTrace)
 
   override def state: Future[AnalyticsEntry] =
     storeRef ? ((ref: ActorRef[AnalyticsEntry]) => DefaultAnalyticsCollector.GetState(ref))
@@ -116,11 +116,11 @@ object DefaultAnalyticsCollector {
 
           collecting(entry = entry.withEvent(name = name, attributes = attributes))
 
-        case (ctx, RecordFailure(message)) =>
+        case (ctx, RecordFailure(message, stackTrace)) =>
           scheduler.cancel(PersistStateTimerKey)
           ctx.self ! PersistState(forceTransmit = false)
 
-          collecting(entry = entry.withFailure(message = message))
+          collecting(entry = entry.withFailure(message = message, stackTrace = stackTrace))
 
         case (ctx, PersistState(forceTransmit)) =>
           if (
@@ -197,7 +197,7 @@ object DefaultAnalyticsCollector {
 
   private sealed trait Message
   private final case class RecordEvent(name: String, attributes: Map[String, String]) extends Message
-  private final case class RecordFailure(message: String) extends Message
+  private final case class RecordFailure(message: String, stackTrace: Option[String]) extends Message
   private final case class GetState(replyTo: ActorRef[AnalyticsEntry]) extends Message
   private case object Send extends Message
   private final case class PersistState(forceTransmit: Boolean) extends Message

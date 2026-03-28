@@ -1,6 +1,10 @@
 package io.github.sndnv.layers.telemetry.analytics
 
+import java.io.PrintWriter
+import java.io.StringWriter
 import java.time.Instant
+
+import scala.util.Using
 
 import io.github.sndnv.layers.telemetry.ApplicationInformation
 
@@ -48,10 +52,14 @@ object AnalyticsEntry {
     }
 
     def withFailure(message: String): Collected =
+      withFailure(message = message, stackTrace = None)
+
+    def withFailure(message: String, stackTrace: Option[String]): Collected =
       copy(
         failures = failures :+ AnalyticsEntry.Failure(
-          message = message,
-          timestamp = Instant.now()
+          message = AnalyticsEntry.Failure.anonymize(message),
+          timestamp = Instant.now(),
+          stackTrace = stackTrace.map(AnalyticsEntry.Failure.anonymize)
         ),
         updated = Instant.now()
       )
@@ -70,8 +78,33 @@ object AnalyticsEntry {
 
   final case class Failure(
     message: String,
-    timestamp: Instant
+    timestamp: Instant,
+    stackTrace: Option[String]
   )
+
+  object Failure {
+    def apply(message: String, timestamp: Instant): Failure =
+      Failure(
+        message = message,
+        timestamp = timestamp,
+        stackTrace = None
+      )
+
+    def anonymize(content: String): String =
+      messageContainsPath
+        .replaceAllIn(content, " *CONTENT_REMOVED* ")
+        .replaceAll(repeatingWhitespace, " ")
+        .trim
+
+    def extractStackTrace(e: Throwable): Option[String] =
+      Using(new StringWriter()) { writer =>
+        Using.resource(new PrintWriter(writer))(e.printStackTrace)
+        writer.toString.trim
+      }.toOption.filterNot(_.isBlank)
+
+    private val messageContainsPath = """(?:[a-zA-Z]:\\|[\\/])(?:[\w\-. ]+[\\/])*[\w\-. ]+""".r
+    private val repeatingWhitespace = """\s\s+"""
+  }
 
   final case class RuntimeInformation(
     id: String,
