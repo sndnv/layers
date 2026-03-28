@@ -5,23 +5,27 @@ on: [ push, pull_request ]
 jobs:
   scala:
     runs-on: ubuntu-latest
+
+    env:
+      MIMA_FAIL_ON_PROBLEM: ${{ vars.MIMA_FAIL_ON_PROBLEM || 'true' }}
+
     strategy:
       fail-fast: false
       matrix:
         scalaVersion: [ "2.13.x", "3.3.x" ]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
 
       - name: Setup JDK 25
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654
         with:
           java-version: 25
           distribution: adopt
           cache: sbt
 
       - name: Setup SBT
-        uses: sbt/setup-sbt@v1
+        uses: sbt/setup-sbt@508b753e53cb6095967669e0911487d2b9bc9f41
 
       - name: Run QA
         run: |
@@ -29,7 +33,7 @@ jobs:
           sbt ++${{ matrix.scalaVersion }} qa
 
       - name: Push Coverage Result
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2
         with:
           flags: scala
           token: ${{ secrets.CODECOV_TOKEN }}
