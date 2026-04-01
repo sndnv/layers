@@ -25,7 +25,7 @@ lazy val versions = new {
   val pekko         = "1.4.0"
   val pekkoHttp     = "1.3.0"
   val pekkoHttpCors = "1.3.0"
-  val pekkoJson     = "3.9.0"
+  val pekkoJson     = "3.9.1"
 
   // persistence
   val slick = "3.6.1"
@@ -38,7 +38,7 @@ lazy val versions = new {
 
   // testing
   val scalaCheck = "1.19.0"
-  val scalaTest  = "3.2.19"
+  val scalaTest  = "3.2.20"
   val mockito    = "5.23.0"
   val jimfs      = "1.3.1"
 
