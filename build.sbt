@@ -125,6 +125,8 @@ lazy val excludedWarts = Seq(
 lazy val commonSettings = Seq(
   Test / logBuffered       := false,
   Test / parallelExecution := false,
+  includeBomSerialNumber   := true,
+  includeBomTimestamp      := true,
   Compile / compile / wartremoverWarnings ++= Warts.unsafe.filterNot(excludedWarts.contains),
   scalacOptions ++= {
     CrossVersion.partialVersion(scalaVersion.value) match {
