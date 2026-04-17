@@ -32,8 +32,10 @@ object DynamicComponentClassLoader {
       }
     }
 
-  private def loadComponentClass[T](className: String, allowedPackages: Seq[String])(implicit tag: ClassTag[T]): Try[Class[T]] =
-    if (allowedPackages.filterNot(_.isBlank).exists(className.startsWith)) {
+  private def loadComponentClass[T](className: String, allowedPackages: Seq[String])(implicit tag: ClassTag[T]): Try[Class[T]] = {
+    val classPackage = className.substring(0, className.lastIndexOf('.') + 1)
+    val allowedClassPackages = allowedPackages.filterNot(_.isBlank).map(_.stripSuffix(".").appended('.'))
+    if (allowedClassPackages.exists(classPackage.startsWith)) {
       Try(Class.forName(className)) match {
         case Success(cls) =>
           if (tag.runtimeClass.isAssignableFrom(cls)) {
@@ -61,6 +63,7 @@ object DynamicComponentClassLoader {
         )
       )
     }
+  }
 
   private def createComponentInstance[T](cls: Class[T], config: com.typesafe.config.Config): Try[T] =
     Try(cls.getDeclaredConstructor(classOf[com.typesafe.config.Config]))
