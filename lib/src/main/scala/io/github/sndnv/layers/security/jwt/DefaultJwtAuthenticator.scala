@@ -94,7 +94,7 @@ class DefaultJwtAuthenticator(
 
       require(
         claims.hasClaim(identityClaim),
-        s"Required identity claim [$identityClaim] was not found in [${claims.toString}]"
+        s"Required identity claim [$identityClaim] was not found"
       )
 
       claims
