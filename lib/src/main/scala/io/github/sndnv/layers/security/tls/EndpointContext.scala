@@ -7,7 +7,6 @@ import java.io.FileNotFoundException
 import java.security.KeyStore
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
-import java.util.concurrent.ThreadLocalRandom
 
 import javax.net.ssl.*
 
@@ -139,8 +138,7 @@ object EndpointContext {
     ): Encoded = {
       val store = loadStore(config)
 
-      val rnd: Random = ThreadLocalRandom.current()
-      val password = rnd.alphanumeric.take(TemporaryPasswordSize).mkString
+      val password = new Random(new SecureRandom()).alphanumeric.take(TemporaryPasswordSize).mkString
 
       Encoded(
         enabled = true,
