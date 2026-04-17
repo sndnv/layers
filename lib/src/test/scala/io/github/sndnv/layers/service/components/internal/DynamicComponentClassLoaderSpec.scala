@@ -7,7 +7,8 @@ class DynamicComponentClassLoaderSpec extends UnitSpec {
     val component = DynamicComponentClassLoader
       .load[TestComponent](
         componentClassName = "io.github.sndnv.layers.service.components.internal.TestComponentImpl1",
-        componentConfig = config
+        componentConfig = config,
+        allowedPackages = Seq("io.github.sndnv.layers")
       )
       .get
 
@@ -22,7 +23,8 @@ class DynamicComponentClassLoaderSpec extends UnitSpec {
     val component = DynamicComponentClassLoader
       .load[TestComponent](
         componentClassName = "io.github.sndnv.layers.service.components.internal.TestComponentImpl2",
-        componentConfig = config
+        componentConfig = config,
+        allowedPackages = Seq("io.github.sndnv.layers")
       )
       .get
 
@@ -37,7 +39,8 @@ class DynamicComponentClassLoaderSpec extends UnitSpec {
     val e = DynamicComponentClassLoader
       .load[TestComponent](
         componentClassName = "io.github.sndnv.layers.service.components.internal.Other",
-        componentConfig = config
+        componentConfig = config,
+        allowedPackages = Seq("io.github.sndnv.layers")
       )
       .failed
       .get
@@ -53,7 +56,8 @@ class DynamicComponentClassLoaderSpec extends UnitSpec {
     val e = DynamicComponentClassLoader
       .load[OtherComponent](
         componentClassName = "io.github.sndnv.layers.service.components.internal.TestComponentImpl1",
-        componentConfig = config
+        componentConfig = config,
+        allowedPackages = Seq("io.github.sndnv.layers")
       )
       .failed
       .get
@@ -69,7 +73,8 @@ class DynamicComponentClassLoaderSpec extends UnitSpec {
     val e = DynamicComponentClassLoader
       .load[TestComponent](
         componentClassName = "io.github.sndnv.layers.service.components.internal.TestComponentImpl3",
-        componentConfig = config
+        componentConfig = config,
+        allowedPackages = Seq("io.github.sndnv.layers")
       )
       .failed
       .get
@@ -87,7 +92,8 @@ class DynamicComponentClassLoaderSpec extends UnitSpec {
     val e = DynamicComponentClassLoader
       .load[OtherComponent](
         componentClassName = "io.github.sndnv.layers.service.components.internal.OtherComponentImpl1",
-        componentConfig = config
+        componentConfig = config,
+        allowedPackages = Seq("io.github.sndnv.layers")
       )
       .failed
       .get
@@ -104,7 +110,8 @@ class DynamicComponentClassLoaderSpec extends UnitSpec {
     val e = DynamicComponentClassLoader
       .load[OtherComponent](
         componentClassName = "io.github.sndnv.layers.service.components.internal.OtherComponentImpl2",
-        componentConfig = config
+        componentConfig = config,
+        allowedPackages = Seq("io.github.sndnv.layers")
       )
       .failed
       .get
@@ -114,6 +121,23 @@ class DynamicComponentClassLoaderSpec extends UnitSpec {
       "Failed to create component instance from no-arguments constructor of " +
         "[io.github.sndnv.layers.service.components.internal.OtherComponentImpl2]: " +
         "[InvocationTargetException - null]"
+    )
+  }
+
+  it should "fail to load components not in the allowed packages list" in {
+    val e = DynamicComponentClassLoader
+      .load[TestComponent](
+        componentClassName = "io.github.sndnv.layers.service.components.internal.TestComponentImpl1",
+        componentConfig = config,
+        allowedPackages = Seq("com.example", "org.other")
+      )
+      .failed
+      .get
+
+    e should be(an[IllegalArgumentException])
+    e.getMessage should be(
+      "Component [io.github.sndnv.layers.service.components.internal.TestComponentImpl1] " +
+        "is not in the list of allowed packages [com.example,org.other]"
     )
   }
 

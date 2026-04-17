@@ -3,6 +3,7 @@ package io.github.sndnv.layers.service.components
 import scala.reflect.ClassTag
 import scala.util.Failure
 import scala.util.Success
+import scala.util.Try
 
 import com.typesafe.config.Config
 import io.github.sndnv.layers.service.components.internal.DynamicComponentClassLoader
@@ -371,7 +372,24 @@ object ComponentLoader {
         if (allowed) {
           val className = config.getString("dynamic.class-name")
 
-          DynamicComponentClassLoader.load[Comp](componentClassName = className, componentConfig = config)(tag) match {
+          val allowedPackages = Try(config.getString("dynamic.allowed-packages"))
+            .getOrElse("")
+            .split(",")
+            .map(_.trim)
+            .filterNot(_.isBlank)
+            .toSeq
+
+          if (allowedPackages.isEmpty) {
+            throw new IllegalArgumentException(
+              s"Dynamic loading for component [${tag.runtimeClass.getName}] failed: no allowed packages provided"
+            )
+          }
+
+          DynamicComponentClassLoader.load[Comp](
+            componentClassName = className,
+            componentConfig = config,
+            allowedPackages = allowedPackages
+          )(tag) match {
             case Success(component) => component
             case Failure(e)         => throw e
           }
