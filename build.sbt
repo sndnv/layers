@@ -23,10 +23,9 @@ ThisBuild / developers    := List(
 
 lazy val versions = new {
   // pekko
-  val pekko         = "1.4.0"
-  val pekkoHttp     = "1.3.0"
-  val pekkoHttpCors = "1.3.0"
-  val pekkoJson     = "3.9.1"
+  val pekko     = "1.4.0"
+  val pekkoHttp = "1.3.0"
+  val pekkoJson = "3.9.1"
 
   // persistence
   val slick = "3.6.1"
