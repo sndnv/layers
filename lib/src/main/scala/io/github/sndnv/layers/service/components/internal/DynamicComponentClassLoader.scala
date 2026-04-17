@@ -11,10 +11,11 @@ import io.github.sndnv.layers.service.components.Component
 object DynamicComponentClassLoader {
   def load[T](
     componentClassName: String,
-    componentConfig: com.typesafe.config.Config
+    componentConfig: com.typesafe.config.Config,
+    allowedPackages: Seq[String]
   )(implicit tag: ClassTag[T]): Try[Component[T]] =
     for {
-      cls <- loadComponentClass[T](className = componentClassName)(tag)
+      cls <- loadComponentClass[T](className = componentClassName, allowedPackages = allowedPackages)(tag)
       instance <- createComponentInstance[T](cls = cls, config = componentConfig)
     } yield {
       Try(instance.getClass.getDeclaredMethod("renderConfig", classOf[String])) match {
@@ -31,26 +32,34 @@ object DynamicComponentClassLoader {
       }
     }
 
-  private def loadComponentClass[T](className: String)(implicit tag: ClassTag[T]): Try[Class[T]] =
-    Try(Class.forName(className)) match {
-      case Success(cls) =>
-        if (tag.runtimeClass.isAssignableFrom(cls)) {
-          Success(cls.asInstanceOf[Class[T]])
-        } else {
+  private def loadComponentClass[T](className: String, allowedPackages: Seq[String])(implicit tag: ClassTag[T]): Try[Class[T]] =
+    if (allowedPackages.filterNot(_.isBlank).exists(className.startsWith)) {
+      Try(Class.forName(className)) match {
+        case Success(cls) =>
+          if (tag.runtimeClass.isAssignableFrom(cls)) {
+            Success(cls.asInstanceOf[Class[T]])
+          } else {
+            Failure(
+              new IllegalArgumentException(
+                s"Target component [${cls.getName}] does not conform to expected type [${tag.runtimeClass.getName}]"
+              )
+            )
+          }
+
+        case Failure(e) =>
           Failure(
             new IllegalArgumentException(
-              s"Target component [${cls.getName}] does not conform to expected type [${tag.runtimeClass.getName}]"
+              s"Failed to find component from [$className]: " +
+                s"[${e.getClass.getSimpleName} - ${e.getMessage}]"
             )
           )
-        }
-
-      case Failure(e) =>
-        Failure(
-          new IllegalArgumentException(
-            s"Failed to find component from [$className]: " +
-              s"[${e.getClass.getSimpleName} - ${e.getMessage}]"
-          )
+      }
+    } else {
+      Failure(
+        new IllegalArgumentException(
+          s"Component [$className] is not in the list of allowed packages [${allowedPackages.mkString(",")}]"
         )
+      )
     }
 
   private def createComponentInstance[T](cls: Class[T], config: com.typesafe.config.Config): Try[T] =

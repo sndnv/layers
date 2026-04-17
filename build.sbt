@@ -1,3 +1,4 @@
+import com.typesafe.tools.mima.core.*
 import sbt.Keys.*
 
 val libraryName: String = "layers"
@@ -93,7 +94,10 @@ lazy val lib = (project in file("./lib"))
       .flatMap(_.split("-").headOption)
       .map(version => organization.value %% moduleName.value % version)
       .toSet,
-    mimaFailOnProblem     := sys.env.getOrElse("MIMA_FAIL_ON_PROBLEM", "true").toBoolean
+    mimaFailOnProblem     := sys.env.getOrElse("MIMA_FAIL_ON_PROBLEM", "true").toBoolean,
+    mimaBinaryIssueFilters ++= Seq(
+      ProblemFilters.exclude[Problem]("io.github.sndnv.layers.service.components.internal.*")
+    )
   )
   .dependsOn(testing % "test->compile")
 

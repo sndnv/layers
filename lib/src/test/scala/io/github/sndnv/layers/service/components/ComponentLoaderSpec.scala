@@ -336,7 +336,9 @@ class ComponentLoaderSpec extends UnitSpec {
     val component = loader.create(config.getConfig("test-component-4"))
 
     component.renderConfig(withPrefix = "") should be(
-      s""" - {"dynamic":{"class-name":"${classOf[TestComponentImpl1].getName}"},"type":"dynamic"}"""
+      s""" - {"dynamic":{"allowed-packages":"io.github.sndnv.layers","class-name":"${classOf[
+          TestComponentImpl1
+        ].getName}"},"type":"dynamic"}"""
     )
     component.component should be(a[TestComponentImpl1])
   }
@@ -355,6 +357,16 @@ class ComponentLoaderSpec extends UnitSpec {
     val e = intercept[IllegalArgumentException](loader.create(config.getConfig("test-component-5")))
 
     e.getMessage should startWith("Failed to get a supported component constructor")
+  }
+
+  it should "fail if no allowed packages are specified" in {
+    val loader = new ComponentLoader.TargetLoader.Dynamic[TestComponent, ComponentLoader.Context.Empty](allowed = true)
+
+    val e = intercept[IllegalArgumentException](loader.create(config.getConfig("test-component-7")))
+
+    e.getMessage should be(
+      "Dynamic loading for component [io.github.sndnv.layers.service.components.internal.TestComponent] failed: no allowed packages provided"
+    )
   }
 
   "A ComponentLoader Context" should "provide an empty context" in {
