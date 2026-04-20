@@ -23,7 +23,7 @@ ThisBuild / developers    := List(
 
 lazy val versions = new {
   // pekko
-  val pekko     = "1.4.0"
+  val pekko     = "1.5.0"
   val pekkoHttp = "1.3.0"
   val pekkoJson = "3.9.1"
 
@@ -32,8 +32,8 @@ lazy val versions = new {
   val h2    = "2.4.240"
 
   // telemetry
-  val openTelemetry           = "1.60.1"
-  val openTelemetryPrometheus = "1.60.1-alpha"
+  val openTelemetry           = "1.61.0"
+  val openTelemetryPrometheus = "1.61.0-alpha"
   val prometheus              = "0.16.0"
 
   // testing
