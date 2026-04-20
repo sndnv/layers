@@ -12,6 +12,18 @@ import org.apache.pekko.stream.scaladsl.Sink
 import org.scalatest.concurrent.Eventually
 
 class DefaultEventCollectorSpec extends UnitSpec with Eventually {
+  "A DefaultEventCollector Config" should "validate provided buffer sizes" in withRetry {
+    an[IllegalArgumentException] should be thrownBy DefaultEventCollector.Config(
+      subscriberBufferSize = 0,
+      quietPeriod = 0.seconds
+    )
+
+    an[IllegalArgumentException] should be thrownBy DefaultEventCollector.Config(
+      subscriberBufferSize = -1,
+      quietPeriod = 0.seconds
+    )
+  }
+
   "A DefaultEventCollector" should "support subscribing to and publishing events" in withRetry {
     import io.github.sndnv.layers.events.DefaultEventCollector.*
 
