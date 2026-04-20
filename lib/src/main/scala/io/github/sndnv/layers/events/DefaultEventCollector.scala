@@ -102,7 +102,12 @@ object DefaultEventCollector {
   final case class Config(
     subscriberBufferSize: Int,
     quietPeriod: FiniteDuration
-  )
+  ) {
+    require(
+      subscriberBufferSize > 0,
+      s"Expected valid subscriberBufferSize but [${subscriberBufferSize.toString}] provided"
+    )
+  }
 
   private def subscribing(state: State)(implicit config: Config, buffer: StashBuffer[Message], log: Logger): Behavior[Message] =
     Behaviors.receive {
