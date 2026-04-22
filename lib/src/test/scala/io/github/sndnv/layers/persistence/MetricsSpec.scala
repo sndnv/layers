@@ -19,6 +19,7 @@ class MetricsSpec extends UnitSpec {
     noException should be thrownBy keyValueMetrics.recordPut(store = null)(future)
     noException should be thrownBy keyValueMetrics.recordGet(store = null)(future)
     noException should be thrownBy keyValueMetrics.recordDelete(store = null)(future)
+    noException should be thrownBy keyValueMetrics.recordConsume(store = null)(future)
     noException should be thrownBy keyValueMetrics.recordContains(store = null)(future)
     noException should be thrownBy keyValueMetrics.recordList(store = null)(future)
   }
@@ -43,9 +44,10 @@ class MetricsSpec extends UnitSpec {
     keyValueMetrics.recordGet(store = "test")(future)
     keyValueMetrics.recordDelete(store = "test")(future)
     keyValueMetrics.recordDelete(store = "test")(future)
+    keyValueMetrics.recordConsume(store = "test")(future)
     keyValueMetrics.recordContains(store = "test")(future)
     keyValueMetrics.recordList(store = "test")(future)
 
-    meter.metric(name = "test_persistence_store_operation_duration") should be(8)
+    meter.metric(name = "test_persistence_store_operation_duration") should be(9)
   }
 }

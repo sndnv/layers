@@ -36,6 +36,14 @@ trait KeyValueStore[K, V] extends Store {
   def delete(key: K): Future[Boolean]
 
   /**
+    * Retrieves a value with the specified `key`, if it exists, and deletes it from the store.
+    *
+    * @param key key
+    * @return the value, if it exists
+    */
+  def consume(key: K): Future[Option[V]]
+
+  /**
     * Checks if a value with the specified `key` exists.
     *
     * @param key key

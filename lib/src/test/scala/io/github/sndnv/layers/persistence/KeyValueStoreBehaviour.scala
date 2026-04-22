@@ -34,7 +34,7 @@ trait KeyValueStoreBehaviour { self: UnitSpec =>
         telemetry.layers.persistence.keyValue.put should be(1)
         telemetry.layers.persistence.keyValue.get should be(1)
         telemetry.layers.persistence.keyValue.delete should be(0)
-        telemetry.layers.persistence.keyValue.contains should be(0)
+        telemetry.layers.persistence.keyValue.consume should be(0)
         telemetry.layers.persistence.keyValue.list should be(0)
       }
     }
@@ -59,6 +59,7 @@ trait KeyValueStoreBehaviour { self: UnitSpec =>
         telemetry.layers.persistence.keyValue.put should be(2)
         telemetry.layers.persistence.keyValue.get should be(2)
         telemetry.layers.persistence.keyValue.delete should be(0)
+        telemetry.layers.persistence.keyValue.consume should be(0)
         telemetry.layers.persistence.keyValue.contains should be(0)
         telemetry.layers.persistence.keyValue.list should be(0)
       }
@@ -82,6 +83,7 @@ trait KeyValueStoreBehaviour { self: UnitSpec =>
         telemetry.layers.persistence.keyValue.put should be(0)
         telemetry.layers.persistence.keyValue.get should be(1)
         telemetry.layers.persistence.keyValue.delete should be(0)
+        telemetry.layers.persistence.keyValue.consume should be(0)
         telemetry.layers.persistence.keyValue.contains should be(0)
         telemetry.layers.persistence.keyValue.list should be(0)
       }
@@ -114,6 +116,7 @@ trait KeyValueStoreBehaviour { self: UnitSpec =>
         telemetry.layers.persistence.keyValue.put should be(3)
         telemetry.layers.persistence.keyValue.get should be(0)
         telemetry.layers.persistence.keyValue.delete should be(0)
+        telemetry.layers.persistence.keyValue.consume should be(0)
         telemetry.layers.persistence.keyValue.contains should be(0)
         telemetry.layers.persistence.keyValue.list should be(1)
       }
@@ -142,6 +145,38 @@ trait KeyValueStoreBehaviour { self: UnitSpec =>
         telemetry.layers.persistence.keyValue.put should be(1)
         telemetry.layers.persistence.keyValue.get should be(2)
         telemetry.layers.persistence.keyValue.delete should be(1)
+        telemetry.layers.persistence.keyValue.consume should be(0)
+        telemetry.layers.persistence.keyValue.contains should be(0)
+        telemetry.layers.persistence.keyValue.list should be(0)
+      }
+    }
+
+    it should "consume values" in withRetry {
+      val telemetry: MockTelemetryContext = MockTelemetryContext()
+
+      val store = createStore(telemetry, "test-store")
+
+      store.name() should be("test-store")
+      store.migrations() should be(empty)
+
+      for {
+        _ <- before(store)
+        _ <- store.put(key = testKey, value = testValue)
+        existing <- store.get(key = testKey)
+        firstConsumeResult <- store.consume(key = testKey)
+        missing <- store.get(key = testKey)
+        secondConsumeResult <- store.consume(key = testKey)
+        _ <- after(store)
+      } yield {
+        existing should be(Some(testValue))
+        firstConsumeResult should be(Some(testValue))
+        missing should be(None)
+        secondConsumeResult should be(None)
+
+        telemetry.layers.persistence.keyValue.put should be(1)
+        telemetry.layers.persistence.keyValue.get should be(2)
+        telemetry.layers.persistence.keyValue.delete should be(0)
+        telemetry.layers.persistence.keyValue.consume should be(2)
         telemetry.layers.persistence.keyValue.contains should be(0)
         telemetry.layers.persistence.keyValue.list should be(0)
       }
@@ -169,6 +204,7 @@ trait KeyValueStoreBehaviour { self: UnitSpec =>
         telemetry.layers.persistence.keyValue.put should be(1)
         telemetry.layers.persistence.keyValue.get should be(0)
         telemetry.layers.persistence.keyValue.delete should be(1)
+        telemetry.layers.persistence.keyValue.consume should be(0)
         telemetry.layers.persistence.keyValue.contains should be(2)
         telemetry.layers.persistence.keyValue.list should be(0)
       }
@@ -206,6 +242,7 @@ trait KeyValueStoreBehaviour { self: UnitSpec =>
         telemetry.layers.persistence.keyValue.put should be(3)
         telemetry.layers.persistence.keyValue.get should be(0)
         telemetry.layers.persistence.keyValue.delete should be(0)
+        telemetry.layers.persistence.keyValue.consume should be(0)
         telemetry.layers.persistence.keyValue.contains should be(0)
         telemetry.layers.persistence.keyValue.list should be(2)
       }
@@ -242,6 +279,7 @@ trait KeyValueStoreBehaviour { self: UnitSpec =>
         telemetry.layers.persistence.keyValue.put should be(1)
         telemetry.layers.persistence.keyValue.get should be(0)
         telemetry.layers.persistence.keyValue.delete should be(0)
+        telemetry.layers.persistence.keyValue.consume should be(0)
         telemetry.layers.persistence.keyValue.contains should be(0)
         telemetry.layers.persistence.keyValue.list should be(1)
       }
