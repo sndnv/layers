@@ -26,6 +26,9 @@ object Metrics {
     def recordDelete[T](store: String)(f: => Future[T]): Future[T] =
       recordOperation(store, operation = Store.Operation.Delete)(f)
 
+    def recordConsume[T](store: String)(f: => Future[T]): Future[T] =
+      recordOperation(store, operation = Store.Operation.Consume)(f)
+
     def recordContains[T](store: String)(f: => Future[T]): Future[T] =
       recordOperation(store, operation = Store.Operation.Contains)(f)
 
@@ -74,6 +77,9 @@ object Metrics {
       }
       case object Delete extends Operation {
         val name: String = "delete"
+      }
+      case object Consume extends Operation {
+        val name: String = "consume"
       }
       case object Contains extends Operation {
         val name: String = "contains"

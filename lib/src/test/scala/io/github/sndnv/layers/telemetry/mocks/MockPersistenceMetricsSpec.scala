@@ -13,18 +13,21 @@ class MockPersistenceMetricsSpec extends UnitSpec {
     metrics.put should be(0)
     metrics.get should be(0)
     metrics.delete should be(0)
+    metrics.consume should be(0)
     metrics.contains should be(0)
     metrics.list should be(0)
 
     metrics.recordPut(store = "test") { Future.successful(Done) }
     metrics.recordGet(store = "test") { Future.successful(Done) }
     metrics.recordDelete(store = "test") { Future.successful(Done) }
+    metrics.recordConsume(store = "test") { Future.successful(Done) }
     metrics.recordContains(store = "test") { Future.successful(Done) }
     metrics.recordList(store = "test") { Future.successful(Done) }
 
     metrics.put should be(1)
     metrics.get should be(1)
     metrics.delete should be(1)
+    metrics.consume should be(1)
     metrics.contains should be(1)
     metrics.list should be(1)
 
@@ -34,6 +37,7 @@ class MockPersistenceMetricsSpec extends UnitSpec {
     metrics.put should be(1)
     metrics.get should be(1)
     metrics.delete should be(1)
+    metrics.consume should be(1)
     metrics.contains should be(1)
     metrics.list should be(1)
   }

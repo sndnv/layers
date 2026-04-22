@@ -12,12 +12,14 @@ object MockPersistenceMetrics {
     private val putRecorded: AtomicInteger = new AtomicInteger(0)
     private val getRecorded: AtomicInteger = new AtomicInteger(0)
     private val deleteRecorded: AtomicInteger = new AtomicInteger(0)
+    private val consumeRecorded: AtomicInteger = new AtomicInteger(0)
     private val containsRecorded: AtomicInteger = new AtomicInteger(0)
     private val listRecorded: AtomicInteger = new AtomicInteger(0)
 
     def put: Int = putRecorded.get()
     def get: Int = getRecorded.get()
     def delete: Int = deleteRecorded.get()
+    def consume: Int = consumeRecorded.get()
     def contains: Int = containsRecorded.get()
     def list: Int = listRecorded.get()
 
@@ -33,6 +35,11 @@ object MockPersistenceMetrics {
 
     override def recordDelete[T](store: String)(f: => Future[T]): Future[T] = {
       val _ = deleteRecorded.incrementAndGet()
+      f
+    }
+
+    override def recordConsume[T](store: String)(f: => Future[T]): Future[T] = {
+      val _ = consumeRecorded.incrementAndGet()
       f
     }
 

@@ -43,6 +43,10 @@ class MemoryStore[K, V] private (
     storeRef ? ((ref: ActorRef[Boolean]) => Remove(key, ref))
   }
 
+  override def consume(key: K): Future[Option[V]] = metrics.recordConsume(store = storeName) {
+    storeRef ? ((ref: ActorRef[Option[V]]) => Consume(key, ref))
+  }
+
   override def get(key: K): Future[Option[V]] = metrics.recordGet(store = storeName) {
     storeRef ? ((ref: ActorRef[Option[V]]) => Get(key, ref))
   }
@@ -84,6 +88,7 @@ object MemoryStore {
   private sealed trait Message[K, V]
   private final case class Put[K, V](key: K, value: V, replyTo: ActorRef[Done]) extends Message[K, V]
   private final case class Remove[K, V](key: K, replyTo: ActorRef[Boolean]) extends Message[K, V]
+  private final case class Consume[K, V](key: K, replyTo: ActorRef[Option[V]]) extends Message[K, V]
   private final case class Get[K, V](key: K, replyTo: ActorRef[Option[V]]) extends Message[K, V]
   private final case class GetAll[K, V](replyTo: ActorRef[Map[K, V]]) extends Message[K, V]
   private final case class Reset[K, V](replyTo: ActorRef[Done]) extends Message[K, V]
@@ -98,6 +103,10 @@ object MemoryStore {
 
         case Remove(key, replyTo) =>
           replyTo ! map.contains(key)
+          store(map = map - key)
+
+        case Consume(key, replyTo) =>
+          replyTo ! map.get(key)
           store(map = map - key)
 
         case Get(key, replyTo) =>

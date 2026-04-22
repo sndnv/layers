@@ -77,6 +77,7 @@ class DefaultJwtProviderSpec extends UnitSpec with BeforeAndAfterAll {
 
       override def put(key: String, value: StoredAccessTokenResponse): Future[Done] = Future.successful(Done)
       override def delete(key: String): Future[Boolean] = Future.successful(false)
+      override def consume(key: String): Future[Option[StoredAccessTokenResponse]] = Future.successful(None)
       override def contains(key: String): Future[Boolean] = Future.successful(false)
       override def entries: Future[Map[String, StoredAccessTokenResponse]] = Future.successful(Map.empty)
       override def load(entries: Map[String, StoredAccessTokenResponse]): Future[Done] = Future.successful(Done)
