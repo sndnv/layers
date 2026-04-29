@@ -1,10 +1,10 @@
 package io.github.sndnv.layers.testing
 
-import java.nio.file._
+import java.nio.file.*
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 import com.google.common.jimfs.Configuration
 import com.google.common.jimfs.Jimfs
@@ -15,7 +15,7 @@ import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.util.ByteString
 
 trait FileSystemHelpers {
-  import FileSystemHelpers._
+  import FileSystemHelpers.*
 
   implicit class StringToTestResourcePath(resourcePath: String) {
 
@@ -139,9 +139,7 @@ trait FileSystemHelpers {
     * @return the file system itself and the objects that were created as part of the setup
     */
   def createMockFileSystem(setup: FileSystemSetup): (FileSystem, FileSystemObjects) = {
-    val filesystem = Jimfs.newFileSystem(
-      Configuration.unix().toBuilder.setAttributeViews("basic", "posix").build()
-    )
+    val filesystem = Jimfs.newFileSystem(setup.config)
 
     val chars: Set[Char] = setup.chars
       .map { char =>
@@ -159,14 +157,14 @@ trait FileSystemHelpers {
     val nestedParentDirs = for {
       i <- 0 until setup.nestedParentDirs
     } yield {
-      s"root/parent-${i.toString}"
+      s"root${filesystem.getSeparator}parent-${i.toString}"
     }
 
     val nestedDirectories = for {
       char <- chars
       parent <- nestedParentDirs
     } yield {
-      s"$parent/child-dir-${char.toString}"
+      s"$parent${filesystem.getSeparator}child-dir-${char.toString}"
     }
 
     val files = chars
@@ -223,6 +221,7 @@ object FileSystemHelpers {
     *                      or set to `false` to only use lowercase characters
     */
   final case class FileSystemSetup(
+    name: String,
     config: Configuration,
     chars: Seq[Char],
     disallowedChars: Seq[Char],
@@ -233,6 +232,9 @@ object FileSystemHelpers {
   ) {
     def withEmptyDirs: FileSystemSetup =
       copy(maxFilesPerDir = 0, nestedParentDirs = 0)
+
+    override def toString: String =
+      name
   }
 
   object FileSystemSetup {
@@ -244,7 +246,8 @@ object FileSystemHelpers {
     }
 
     final val Unix: FileSystemSetup = FileSystemSetup(
-      config = Configuration.unix(),
+      name = "Unix",
+      config = Configuration.unix().toBuilder.setAttributeViews("basic", "posix").build(),
       chars = Chars.Default,
       disallowedChars = Seq('\u0000', '/', '\n', '\r'),
       disallowedFileNames = Seq(".", ".."),
@@ -254,7 +257,8 @@ object FileSystemHelpers {
     )
 
     final val MacOS: FileSystemSetup = FileSystemSetup(
-      config = Configuration.osX(),
+      name = "MacOS",
+      config = Configuration.osX().toBuilder.setAttributeViews("basic", "posix").build(),
       chars = Chars.Default,
       disallowedChars = Seq('\u0000', '/', '\n', '\r'),
       disallowedFileNames = Seq(".", ".."),
@@ -264,10 +268,11 @@ object FileSystemHelpers {
     )
 
     final val Windows: FileSystemSetup = FileSystemSetup(
-      config = Configuration.windows(),
+      name = "Windows",
+      config = Configuration.windows().toBuilder.setAttributeViews("basic", "owner", "dos", "acl", "user").build(),
       chars = Chars.Default,
       disallowedChars = (0 to 31).map(_.toChar) ++ Seq(
-        '<', '>', ':', '"', '/', '\\', '|', '?', '*'
+        '<', '>', ':', '"', '/', '\\', '|', '?', '*', ' '
       ),
       disallowedFileNames = Seq(" ", "."),
       maxFilesPerDir = Int.MaxValue,
@@ -297,5 +302,31 @@ object FileSystemHelpers {
       * Total number of files and directories created.
       */
     lazy val total: Int = filesPerDir + rootDirs * filesPerDir + nestedDirs * filesPerDir
+  }
+
+  implicit class ExtendedFileSystem(fs: FileSystem) {
+
+    /**
+      * Provides the root directory of this file system.
+      */
+    def root: String = fs.getRootDirectories.iterator().next().toString
+
+    /**
+      * Normalizes the provided path to a path suitable for this file system.
+      * <br/><br/>
+      * Examples:
+      * <ul>
+      *   <li>On Windows - `/a/b/c` becomes `C:\a\b\c`</li>
+      *   <li>On Posix - `C:\a\b\c` becomes /a/b/c`</li>
+      * </ul>
+      *
+      * @param path path to be normalized
+      * @return normalized path
+      */
+    def normalize(path: String): String = {
+      val separator = fs.getSeparator
+      val stripped = path.stripPrefix("/").stripPrefix("\\").replaceFirst("^[A-Za-z]:\\\\?", "")
+      root + stripped.replace("/", separator).replace("\\", separator)
+    }
   }
 }

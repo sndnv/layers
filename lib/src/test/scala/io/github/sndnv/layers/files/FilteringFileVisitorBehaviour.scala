@@ -15,16 +15,21 @@ import org.slf4j.Logger
 
 trait FilteringFileVisitorBehaviour { self: UnitSpec & FileSystemHelpers =>
   def visitor(setup: FileSystemSetup): Unit = {
+    import FileSystemHelpers.*
+
     it should "collect files and handle failures based on a provided path matcher" in {
       val (fs, _) = createMockFileSystem(setup)
 
-      val dir = fs.getPath("/test")
-      val file1 = fs.getPath("/test/file-1")
-      val file2 = fs.getPath("/test/file-2")
-      val file3 = fs.getPath("/file-3")
-      val file4 = fs.getPath("/file-4")
+      val dir = fs.getPath(fs.normalize("/test"))
+      val file1 = fs.getPath(fs.normalize("/test/file-1"))
+      val file2 = fs.getPath(fs.normalize("/test/file-2"))
+      val file3 = fs.getPath(fs.normalize("/file-3"))
+      val file4 = fs.getPath(fs.normalize("/file-4"))
 
-      val visitor = FilteringFileVisitor(matcher = fs.getPathMatcher(s"glob:{/test,/test/*}"))
+      val rootPrefix = fs.root.replace("\\", "/")
+      val glob = s"glob:{${rootPrefix}test,${rootPrefix}test/*}"
+
+      val visitor = FilteringFileVisitor(matcher = fs.getPathMatcher(glob))
 
       visitor.matched should be(empty)
       visitor.failed should be(empty)
@@ -43,7 +48,7 @@ trait FilteringFileVisitorBehaviour { self: UnitSpec & FileSystemHelpers =>
       visitor.postVisitDirectory(dir, null)
 
       visitor.matched should be(Seq(dir, file1, file2))
-      visitor.failed should be(Seq(file4 -> "AccessDeniedException - /file-4"))
+      visitor.failed should be(Seq(file4 -> s"AccessDeniedException - ${fs.root}file-4"))
     }
 
     it should "support walking the file tree from a starting path" in {
@@ -54,7 +59,7 @@ trait FilteringFileVisitorBehaviour { self: UnitSpec & FileSystemHelpers =>
 
       val (fs, _) = createMockFileSystem(setup)
 
-      val path = fs.getPath("/test")
+      val path = fs.getPath(fs.normalize("/test"))
       val subdir1 = path.resolve("subdir1")
       val subdir2 = subdir1.resolve("subdir2")
 
@@ -67,8 +72,11 @@ trait FilteringFileVisitorBehaviour { self: UnitSpec & FileSystemHelpers =>
       Files.createFile(subdir1.resolve(file3))
       Files.createFile(subdir2.resolve(file4))
 
+      val rootPrefix = fs.root.replace("\\", "/")
+      val glob = s"glob:${rootPrefix}test/{*,**/*}"
+
       val FilteringFileVisitor.Result(collected, failed) =
-        FilteringFileVisitor(matcher = fs.getPathMatcher(s"glob:/test/{*,**/*}")).walk(start = path)
+        FilteringFileVisitor(matcher = fs.getPathMatcher(glob)).walk(start = path)
 
       collected.map(_.getFileName.toString).sorted should be(
         Seq(file1, file2, file3, file4, "subdir1", "subdir2").sorted
@@ -83,8 +91,11 @@ trait FilteringFileVisitorBehaviour { self: UnitSpec & FileSystemHelpers =>
       val logger = mock(classOf[Logger])
       val captor = ArgumentCaptor.forClass(classOf[String])
 
-      val successful = Seq(fs.getPath("/test"))
-      val failed = Seq(fs.getPath("/test/1") -> "Test failure #1", fs.getPath("/test/2") -> "Test failure #2")
+      val successful = Seq(fs.getPath(fs.normalize("/test")))
+      val failed = Seq(
+        fs.getPath(fs.normalize("/test/1")) -> "Test failure #1",
+        fs.getPath(fs.normalize("/test/2")) -> "Test failure #2"
+      )
 
       val result = FilteringFileVisitor.Result(matched = successful, failed = failed)
 
@@ -98,7 +109,7 @@ trait FilteringFileVisitorBehaviour { self: UnitSpec & FileSystemHelpers =>
 
       captor.getAllValues.asScala.toList.take(2) match {
         case path :: failure :: Nil =>
-          path should be("/test/1")
+          path should be(fs.normalize("/test/1"))
           failure should be("Test failure #1")
 
         case other =>
@@ -107,7 +118,7 @@ trait FilteringFileVisitorBehaviour { self: UnitSpec & FileSystemHelpers =>
 
       captor.getAllValues.asScala.toList.takeRight(2) match {
         case path :: failure :: Nil =>
-          path should be("/test/2")
+          path should be(fs.normalize("/test/2"))
           failure should be("Test failure #2")
 
         case other =>
