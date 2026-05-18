@@ -25,7 +25,7 @@ trait FileSystemHelpers {
       * @return the created path
       */
     def asTestResource: Path =
-      Paths.get(getClass.getResource(resourcePath).getPath)
+      Paths.get(getClass.getResource(resourcePath).toURI)
   }
 
   implicit class PathWithIO(resourcePath: Path) {
@@ -89,8 +89,9 @@ trait FileSystemHelpers {
         s"Expected [${resourcePath.toString}] to be under $target/$testClasses"
       )
 
-      val pathEndsInTarget = resourcePathAsString.endsWith(target) || resourcePathAsString.endsWith(s"$target/")
-      val pathEndsInTestClasses = resourcePathAsString.endsWith(testClasses) || resourcePathAsString.endsWith(s"$testClasses/")
+      val sep = java.io.File.separator
+      val pathEndsInTarget = resourcePathAsString.endsWith(target) || resourcePathAsString.endsWith(s"$target$sep")
+      val pathEndsInTestClasses = resourcePathAsString.endsWith(testClasses) || resourcePathAsString.endsWith(s"$testClasses$sep")
       require(
         !pathEndsInTarget && !pathEndsInTestClasses,
         s"Expected [${resourcePath.toString}] to be a child of $target/$testClasses"
