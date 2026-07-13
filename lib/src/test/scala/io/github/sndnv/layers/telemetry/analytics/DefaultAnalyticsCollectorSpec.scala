@@ -127,6 +127,78 @@ class DefaultAnalyticsCollectorSpec extends UnitSpec with Eventually {
     }
   }
 
+  it should "roll over cached state when the app version changes" in withRetry {
+    val persistence = MockAnalyticsPersistence(
+      existing = AnalyticsEntry
+        .collected(app = previousApp)
+        .withEvent(name = "existing_event", attributes = Map.empty)
+        .withFailure(message = "Existing failure")
+    )
+
+    val collector = DefaultAnalyticsCollector(
+      name = "test-analytics-collector",
+      config = config,
+      persistence = persistence,
+      app = currentApp
+    )
+
+    collector.recordEvent("test_event")
+
+    collector.state.map { state =>
+      state.runtime.app should be(currentApp.asString())
+      state.events.map(_.event) should be(Seq("test_event"))
+      state.failures should be(empty)
+
+      persistence.transmitted.toList match {
+        case transmitted :: Nil =>
+          transmitted.runtime.app should be(previousApp.asString())
+          transmitted.events.map(_.event) should be(Seq("existing_event"))
+          transmitted.failures.map(_.message) should be(Seq("Existing failure"))
+
+        case other =>
+          fail(s"Unexpected result received: [$other]")
+      }
+
+      persistence.cached.toList match {
+        case cached :: Nil =>
+          cached.runtime.app should be(currentApp.asString())
+          cached.events should be(empty)
+          cached.failures should be(empty)
+
+        case other =>
+          fail(s"Unexpected result received: [$other]")
+      }
+    }
+  }
+
+  it should "retain cached state when roll-over transmission fails" in withRetry {
+    val existing = AnalyticsEntry
+      .collected(app = previousApp)
+      .withEvent(name = "existing_event", attributes = Map.empty)
+
+    val persistence = new MockAnalyticsPersistence(existing = Success(Some(existing))) {
+      override def transmit(entry: AnalyticsEntry): Future[Done] =
+        Future.failed(new RuntimeException("Test failure"))
+    }
+
+    val collector = DefaultAnalyticsCollector(
+      name = "test-analytics-collector",
+      config = config,
+      persistence = persistence,
+      app = currentApp
+    )
+
+    collector.recordEvent("test_event")
+
+    collector.state.map { state =>
+      state.runtime.app should be(previousApp.asString())
+      state.events.map(_.event) should be(Seq("existing_event", "test_event"))
+
+      persistence.cached should be(empty)
+      persistence.transmitted should be(empty)
+    }
+  }
+
   it should "handle failures when loading cached state" in withRetry {
     val persistence = MockAnalyticsPersistence(existing = new RuntimeException("Test failure"))
 
@@ -439,4 +511,16 @@ class DefaultAnalyticsCollectorSpec extends UnitSpec with Eventually {
     persistenceInterval = 3.seconds,
     transmissionInterval = 10.minutes
   )
+
+  private val previousApp: ApplicationInformation = new ApplicationInformation {
+    override val name: String = "test-app"
+    override val version: String = "previous"
+    override val buildTime: Long = 0L
+  }
+
+  private val currentApp: ApplicationInformation = new ApplicationInformation {
+    override val name: String = "test-app"
+    override val version: String = "current"
+    override val buildTime: Long = 0L
+  }
 }

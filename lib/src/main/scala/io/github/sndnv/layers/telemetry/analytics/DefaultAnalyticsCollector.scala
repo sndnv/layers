@@ -2,6 +2,7 @@ package io.github.sndnv.layers.telemetry.analytics
 
 import java.time.Instant
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.duration.*
 import scala.util.Failure
@@ -66,17 +67,31 @@ object DefaultAnalyticsCollector {
       Behaviors.withTimers { implicit scheduler =>
         Behaviors.receive {
           case (ctx, LoadState) =>
-            ctx.pipeToSelf(persistence.restore()) {
-              case Success(entry) =>
-                val actual = entry.map(_.asCollected()).getOrElse(AnalyticsEntry.collected(app))
+            implicit val ec: ExecutionContext = ctx.executionContext
+            ctx.pipeToSelf(
+              persistence.restore().flatMap {
+                case Some(entry) if entry.runtime.app != app.asString() =>
+                  val fresh = AnalyticsEntry.collected(app)
+                  persistence
+                    .transmit(entry)
+                    .map { _ => persistence.cache(entry = fresh); fresh }
+                    .recover { case _ => entry.asCollected() }
 
+                case Some(entry) =>
+                  Future.successful(entry.asCollected())
+
+                case None =>
+                  Future.successful(AnalyticsEntry.collected(app))
+              }
+            ) {
+              case Success(entry) =>
                 ctx.log.debug(
                   "Analytics state successfully loaded with [events={},failures={}]",
-                  actual.events.length,
-                  actual.failures.length
+                  entry.events.length,
+                  entry.failures.length
                 )
 
-                StateLoaded(entry = actual)
+                StateLoaded(entry = entry)
 
               case Failure(e) =>
                 ctx.log.error(
