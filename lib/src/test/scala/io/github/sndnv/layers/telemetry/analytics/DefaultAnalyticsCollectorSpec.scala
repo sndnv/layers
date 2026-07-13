@@ -127,7 +127,7 @@ class DefaultAnalyticsCollectorSpec extends UnitSpec with Eventually {
     }
   }
 
-  it should "roll over cached state when the app version changes" in withRetry {
+  it should "defer cached state to a pending queue when the app version changes" in withRetry {
     val persistence = MockAnalyticsPersistence(
       existing = AnalyticsEntry
         .collected(app = previousApp)
@@ -137,7 +137,7 @@ class DefaultAnalyticsCollectorSpec extends UnitSpec with Eventually {
 
     val collector = DefaultAnalyticsCollector(
       name = "test-analytics-collector",
-      config = config,
+      config = config.copy(persistenceInterval = 1.minute),
       persistence = persistence,
       app = currentApp
     )
@@ -149,11 +149,13 @@ class DefaultAnalyticsCollectorSpec extends UnitSpec with Eventually {
       state.events.map(_.event) should be(Seq("test_event"))
       state.failures should be(empty)
 
-      persistence.transmitted.toList match {
-        case transmitted :: Nil =>
-          transmitted.runtime.app should be(previousApp.asString())
-          transmitted.events.map(_.event) should be(Seq("existing_event"))
-          transmitted.failures.map(_.message) should be(Seq("Existing failure"))
+      persistence.transmitted should be(empty)
+
+      persistence.pending.toList match {
+        case pendingEntry :: Nil =>
+          pendingEntry.runtime.app should be(previousApp.asString())
+          pendingEntry.events.map(_.event) should be(Seq("existing_event"))
+          pendingEntry.failures.map(_.message) should be(Seq("Existing failure"))
 
         case other =>
           fail(s"Unexpected result received: [$other]")
@@ -171,7 +173,82 @@ class DefaultAnalyticsCollectorSpec extends UnitSpec with Eventually {
     }
   }
 
-  it should "retain cached state when roll-over transmission fails" in withRetry {
+  it should "transmit pending entries on the next transmission" in withRetry {
+    val persistence = MockAnalyticsPersistence(
+      existing = AnalyticsEntry
+        .collected(app = previousApp)
+        .withEvent(name = "existing_event", attributes = Map.empty)
+    )
+
+    val collector = DefaultAnalyticsCollector(
+      name = "test-analytics-collector",
+      config = config,
+      persistence = persistence,
+      app = currentApp
+    )
+
+    collector.recordEvent("test_event")
+    collector.send()
+
+    eventually {
+      collector.state.map { _ =>
+        persistence.pending should be(empty)
+
+        persistence.transmitted.toList match {
+          case pendingEntry :: currentEntry :: Nil =>
+            pendingEntry.runtime.app should be(previousApp.asString())
+            pendingEntry.events.map(_.event) should be(Seq("existing_event"))
+
+            currentEntry.runtime.app should be(currentApp.asString())
+            currentEntry.events.map(_.event) should be(Seq("test_event"))
+
+          case other =>
+            fail(s"Unexpected result received: [$other]")
+        }
+      }
+    }
+  }
+
+  it should "queue multiple pending entries across version changes" in withRetry {
+    val persistence = MockAnalyticsPersistence(
+      existing = AnalyticsEntry
+        .collected(app = previousApp)
+        .withEvent(name = "previous_event", attributes = Map.empty)
+    )
+
+    persistence.cachePending(
+      entries = Seq(
+        AnalyticsEntry
+          .collected(app = olderApp)
+          .withEvent(name = "older_event", attributes = Map.empty)
+      )
+    )
+
+    val collector = DefaultAnalyticsCollector(
+      name = "test-analytics-collector",
+      config = config.copy(persistenceInterval = 1.minute),
+      persistence = persistence,
+      app = currentApp
+    )
+
+    collector.state.map { state =>
+      state.runtime.app should be(currentApp.asString())
+
+      persistence.pending.toList match {
+        case older :: previous :: Nil =>
+          older.runtime.app should be(olderApp.asString())
+          older.events.map(_.event) should be(Seq("older_event"))
+
+          previous.runtime.app should be(previousApp.asString())
+          previous.events.map(_.event) should be(Seq("previous_event"))
+
+        case other =>
+          fail(s"Unexpected result received: [$other]")
+      }
+    }
+  }
+
+  it should "retain pending entries when transmission fails" in withRetry {
     val existing = AnalyticsEntry
       .collected(app = previousApp)
       .withEvent(name = "existing_event", attributes = Map.empty)
@@ -188,14 +265,114 @@ class DefaultAnalyticsCollectorSpec extends UnitSpec with Eventually {
       app = currentApp
     )
 
+    collector.send()
+
+    eventually {
+      collector.state.map { _ =>
+        persistence.pending.toList match {
+          case pendingEntry :: Nil =>
+            pendingEntry.runtime.app should be(previousApp.asString())
+            pendingEntry.events.map(_.event) should be(Seq("existing_event"))
+
+          case other =>
+            fail(s"Unexpected result received: [$other]")
+        }
+
+        persistence.transmitted should be(empty)
+      }
+    }
+  }
+
+  it should "retain only failed pending entries when transmission partially fails" in withRetry {
+    val existing = AnalyticsEntry
+      .collected(app = previousApp)
+      .withEvent(name = "previous_event", attributes = Map.empty)
+
+    val persistence = new MockAnalyticsPersistence(existing = Success(Some(existing))) {
+      override def transmit(entry: AnalyticsEntry): Future[Done] =
+        if (entry.runtime.app == olderApp.asString()) Future.failed(new RuntimeException("Test failure"))
+        else super.transmit(entry)
+    }
+
+    persistence.cachePending(
+      entries = Seq(
+        AnalyticsEntry
+          .collected(app = olderApp)
+          .withEvent(name = "older_event", attributes = Map.empty)
+      )
+    )
+
+    val collector = DefaultAnalyticsCollector(
+      name = "test-analytics-collector",
+      config = config,
+      persistence = persistence,
+      app = currentApp
+    )
+
     collector.recordEvent("test_event")
+    collector.send()
 
-    collector.state.map { state =>
-      state.runtime.app should be(previousApp.asString())
-      state.events.map(_.event) should be(Seq("existing_event", "test_event"))
+    eventually {
+      collector.state.map { _ =>
+        persistence.pending.toList match {
+          case older :: Nil =>
+            older.runtime.app should be(olderApp.asString())
+            older.events.map(_.event) should be(Seq("older_event"))
 
-      persistence.cached should be(empty)
-      persistence.transmitted should be(empty)
+          case other =>
+            fail(s"Unexpected result received: [$other]")
+        }
+
+        persistence.transmitted.toList match {
+          case previous :: current :: Nil =>
+            previous.runtime.app should be(previousApp.asString())
+            previous.events.map(_.event) should be(Seq("previous_event"))
+
+            current.runtime.app should be(currentApp.asString())
+            current.events.map(_.event) should be(Seq("test_event"))
+
+          case other =>
+            fail(s"Unexpected result received: [$other]")
+        }
+      }
+    }
+  }
+
+  it should "handle unexpected transmission failures for pending entries" in withRetry {
+    val existing = AnalyticsEntry
+      .collected(app = previousApp)
+      .withEvent(name = "existing_event", attributes = Map.empty)
+
+    val persistence = new MockAnalyticsPersistence(existing = Success(Some(existing))) {
+      override def transmit(entry: AnalyticsEntry): Future[Done] =
+        throw new RuntimeException("Test failure")
+    }
+
+    val collector = DefaultAnalyticsCollector(
+      name = "test-analytics-collector",
+      config = config,
+      persistence = persistence,
+      app = currentApp
+    )
+
+    collector.recordEvent("test_event")
+    collector.send()
+
+    eventually {
+      collector.state.map { state =>
+        state.events.map(_.event) should be(Seq("test_event"))
+
+        persistence.pending.toList match {
+          case pendingEntry :: Nil =>
+            pendingEntry.runtime.app should be(previousApp.asString())
+            pendingEntry.events.map(_.event) should be(Seq("existing_event"))
+
+          case other =>
+            fail(s"Unexpected result received: [$other]")
+        }
+
+        persistence.transmitted should be(empty)
+      }
     }
   }
 
@@ -420,6 +597,41 @@ class DefaultAnalyticsCollectorSpec extends UnitSpec with Eventually {
     }
   }
 
+  it should "handle unexpected transmission failures" in withRetry {
+    val persistence = new MockAnalyticsPersistence(existing = Success(None)) {
+      override def transmit(entry: AnalyticsEntry): Future[Done] =
+        throw new RuntimeException("Test failure")
+    }
+
+    val collector = DefaultAnalyticsCollector(
+      name = "test-analytics-collector",
+      config = config,
+      persistence = persistence,
+      app = ApplicationInformation.none
+    )
+
+    collector.recordEvent("test_event")
+    collector.recordFailure(message = "Test failure")
+
+    eventually {
+      collector.state.map { state =>
+        state.events.size should be(1)
+        state.failures.size should be(1)
+
+        persistence.cached.toList match {
+          case pendingCached :: Nil =>
+            pendingCached.events.size should be(1)
+            pendingCached.failures.size should be(1)
+
+          case other =>
+            fail(s"Unexpected result received: [$other]")
+        }
+
+        persistence.transmitted should be(empty)
+      }
+    }
+  }
+
   it should "cache state during termination" in withRetry {
     val persistence = new MockAnalyticsPersistence(existing = Success(None)) {
       override def lastTransmitted: Instant = Instant.now() // prevents transmission
@@ -511,6 +723,12 @@ class DefaultAnalyticsCollectorSpec extends UnitSpec with Eventually {
     persistenceInterval = 3.seconds,
     transmissionInterval = 10.minutes
   )
+
+  private val olderApp: ApplicationInformation = new ApplicationInformation {
+    override val name: String = "test-app"
+    override val version: String = "older"
+    override val buildTime: Long = 0L
+  }
 
   private val previousApp: ApplicationInformation = new ApplicationInformation {
     override val name: String = "test-app"

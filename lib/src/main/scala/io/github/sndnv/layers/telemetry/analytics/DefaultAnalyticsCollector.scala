@@ -69,29 +69,32 @@ object DefaultAnalyticsCollector {
           case (ctx, LoadState) =>
             implicit val ec: ExecutionContext = ctx.executionContext
             ctx.pipeToSelf(
-              persistence.restore().flatMap {
-                case Some(entry) if entry.runtime.app != app.asString() =>
-                  val fresh = AnalyticsEntry.collected(app)
-                  persistence
-                    .transmit(entry)
-                    .map { _ => persistence.cache(entry = fresh); fresh }
-                    .recover { case _ => entry.asCollected() }
+              persistence.restorePending().flatMap { restoredPending =>
+                persistence.restore().map {
+                  case Some(entry) if entry.runtime.app != app.asString() =>
+                    val fresh = AnalyticsEntry.collected(app)
+                    val pending = restoredPending :+ entry
+                    persistence.cache(entry = fresh)
+                    persistence.cachePending(entries = pending)
+                    (fresh, pending)
 
-                case Some(entry) =>
-                  Future.successful(entry.asCollected())
+                  case Some(entry) =>
+                    (entry.asCollected(), restoredPending)
 
-                case None =>
-                  Future.successful(AnalyticsEntry.collected(app))
+                  case None =>
+                    (AnalyticsEntry.collected(app), restoredPending)
+                }
               }
             ) {
-              case Success(entry) =>
+              case Success((entry, pending)) =>
                 ctx.log.debug(
-                  "Analytics state successfully loaded with [events={},failures={}]",
+                  "Analytics state successfully loaded with [events={},failures={},pending={}]",
                   entry.events.length,
-                  entry.failures.length
+                  entry.failures.length,
+                  pending.length
                 )
 
-                StateLoaded(entry = entry)
+                StateLoaded(entry = entry, pending = pending)
 
               case Failure(e) =>
                 ctx.log.error(
@@ -100,12 +103,12 @@ object DefaultAnalyticsCollector {
                   e.getMessage
                 )
 
-                StateLoaded(entry = AnalyticsEntry.collected(app))
+                StateLoaded(entry = AnalyticsEntry.collected(app), pending = Seq.empty)
             }
             Behaviors.same
 
-          case (_, StateLoaded(entry)) =>
-            buffer.unstashAll(collecting(entry))
+          case (_, StateLoaded(entry, pending)) =>
+            buffer.unstashAll(collecting(entry, pending))
 
           case (_, other) =>
             val _ = buffer.stash(other)
@@ -115,7 +118,8 @@ object DefaultAnalyticsCollector {
     }
 
   private def collecting(
-    entry: AnalyticsEntry.Collected
+    entry: AnalyticsEntry.Collected,
+    pending: Seq[AnalyticsEntry]
   )(implicit
     config: Config,
     persistence: AnalyticsPersistence,
@@ -129,29 +133,40 @@ object DefaultAnalyticsCollector {
             scheduler.startSingleTimer(PersistStateTimerKey, PersistState(forceTransmit = false), config.persistenceInterval)
           }
 
-          collecting(entry = entry.withEvent(name = name, attributes = attributes))
+          collecting(entry = entry.withEvent(name = name, attributes = attributes), pending = pending)
 
         case (ctx, RecordFailure(message, stackTrace)) =>
           scheduler.cancel(PersistStateTimerKey)
           ctx.self ! PersistState(forceTransmit = false)
 
-          collecting(entry = entry.withFailure(message = message, stackTrace = stackTrace))
+          collecting(entry = entry.withFailure(message = message, stackTrace = stackTrace), pending = pending)
 
         case (ctx, PersistState(forceTransmit)) =>
           if (
             forceTransmit || persistence.lastTransmitted.plusMillis(config.transmissionInterval.toMillis).isBefore(Instant.now())
           ) {
-            ctx.pipeToSelf(persistence.transmit(entry)) {
-              case Success(_) =>
+            implicit val ec: ExecutionContext = ctx.executionContext
+            ctx.pipeToSelf(
+              Future.delegate {
+                transmitPending(pending).flatMap { remaining =>
+                  persistence
+                    .transmit(entry)
+                    .map(_ => (remaining, Option.empty[Throwable]))
+                    .recover { case e => (remaining, Some(e)) }
+                }
+              }
+            ) {
+              case Success((remaining, None)) =>
                 ctx.log.debug(
-                  "Analytics state successfully transmitted with [events={},failures={}]",
+                  "Analytics state successfully transmitted with [events={},failures={},pending={}]",
                   entry.events.length,
-                  entry.failures.length
+                  entry.failures.length,
+                  remaining.length
                 )
 
-                StateTransmitted(successful = true)
+                StateTransmitted(pending = remaining, successful = true)
 
-              case Failure(e) =>
+              case Success((remaining, Some(e))) =>
                 ctx.log.error(
                   "Failed to transmit analytics state with [events={},failures={}]: [{} - {}]",
                   entry.events.length,
@@ -160,9 +175,18 @@ object DefaultAnalyticsCollector {
                   e.getMessage
                 )
 
-                StateTransmitted(successful = false)
+                StateTransmitted(pending = remaining, successful = false)
+
+              case Failure(e) =>
+                ctx.log.error(
+                  "Failed to transmit analytics state: [{} - {}]",
+                  e.getClass.getSimpleName,
+                  e.getMessage
+                )
+
+                StateTransmitted(pending = pending, successful = false)
             }
-            transmitting(pending = entry)
+            transmitting(inFlight = entry)
           } else {
             persistence.cache(entry = entry)
             Behaviors.same
@@ -185,8 +209,26 @@ object DefaultAnalyticsCollector {
         Behaviors.same
       }
 
+  private def transmitPending(
+    pending: Seq[AnalyticsEntry]
+  )(implicit persistence: AnalyticsPersistence, ec: ExecutionContext): Future[Seq[AnalyticsEntry]] =
+    if (pending.isEmpty) {
+      Future.successful(pending)
+    } else {
+      Future
+        .foldLeft(
+          pending.map { entry =>
+            persistence.transmit(entry).map(_ => Seq.empty[AnalyticsEntry]).recover { case _ => Seq(entry) }
+          }
+        )(Seq.empty[AnalyticsEntry])(_ ++ _)
+        .map { remaining =>
+          if (remaining.size != pending.size) persistence.cachePending(entries = remaining)
+          remaining
+        }
+    }
+
   private def transmitting(
-    pending: AnalyticsEntry.Collected
+    inFlight: AnalyticsEntry.Collected
   )(implicit
     config: Config,
     persistence: AnalyticsPersistence,
@@ -195,14 +237,14 @@ object DefaultAnalyticsCollector {
   ): Behavior[Message] =
     Behaviors.withStash(capacity = Int.MaxValue) { buffer =>
       Behaviors.receiveMessage {
-        case StateTransmitted(true) =>
+        case StateTransmitted(pending, true) =>
           val empty = AnalyticsEntry.collected(app)
           persistence.cache(entry = empty)
-          buffer.unstashAll(collecting(entry = empty))
+          buffer.unstashAll(collecting(entry = empty, pending = pending))
 
-        case StateTransmitted(false) =>
-          persistence.cache(entry = pending)
-          buffer.unstashAll(collecting(entry = pending))
+        case StateTransmitted(pending, false) =>
+          persistence.cache(entry = inFlight)
+          buffer.unstashAll(collecting(entry = inFlight, pending = pending))
 
         case other =>
           val _ = buffer.stash(other)
@@ -217,8 +259,8 @@ object DefaultAnalyticsCollector {
   private case object Send extends Message
   private final case class PersistState(forceTransmit: Boolean) extends Message
   private case object LoadState extends Message
-  private final case class StateLoaded(entry: AnalyticsEntry.Collected) extends Message
-  private final case class StateTransmitted(successful: Boolean) extends Message
+  private final case class StateLoaded(entry: AnalyticsEntry.Collected, pending: Seq[AnalyticsEntry]) extends Message
+  private final case class StateTransmitted(pending: Seq[AnalyticsEntry], successful: Boolean) extends Message
   private case object Stop extends Message
 
   private object PersistStateTimerKey

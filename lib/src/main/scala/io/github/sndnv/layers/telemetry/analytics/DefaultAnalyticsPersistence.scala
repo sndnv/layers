@@ -37,12 +37,25 @@ class DefaultAnalyticsPersistence(
   private val lastTransmittedRef: AtomicReference[Instant] = new AtomicReference(Instant.EPOCH)
   private val clientProviderRef: AtomicReference[Option[AnalyticsClient.Provider]] = new AtomicReference(None)
 
+  private val localCachePending: Path = {
+    val fileName = config.localCache.getFileName.toString
+
+    val pendingFileName = fileName.lastIndexOf('.') match {
+      case index if index > 0 => s"${fileName.take(index)}_pending${fileName.drop(index)}"
+      case _                  => s"${fileName}_pending"
+    }
+
+    config.localCache.resolveSibling(pendingFileName)
+  }
+
   override def cache(entry: AnalyticsEntry): Unit = {
     val cachedAt = Instant.now()
 
     val result = Try {
-      val permissions = PosixFilePermissions.fromString(DefaultAnalyticsPersistence.Defaults.CacheFilePermissions)
-      val _ = Files.createFile(config.localCache, PosixFilePermissions.asFileAttribute(permissions))
+      if (!Files.exists(config.localCache)) {
+        val permissions = PosixFilePermissions.fromString(DefaultAnalyticsPersistence.Defaults.CacheFilePermissions)
+        val _ = Files.createFile(config.localCache, PosixFilePermissions.asFileAttribute(permissions))
+      }
 
       val content = Json.toBytes(
         Json.toJson(entry).as[JsObject] ++ Json.obj(
@@ -128,6 +141,59 @@ class DefaultAnalyticsPersistence(
       Some(entry.as[AnalyticsEntry])
     } else {
       None
+    }
+  }
+
+  override def cachePending(entries: Seq[AnalyticsEntry]): Unit = {
+    val result = Try {
+      if (!Files.exists(localCachePending)) {
+        val permissions = PosixFilePermissions.fromString(DefaultAnalyticsPersistence.Defaults.CacheFilePermissions)
+        val _ = Files.createFile(localCachePending, PosixFilePermissions.asFileAttribute(permissions))
+      }
+
+      Files.write(
+        localCachePending,
+        Json.toBytes(Json.toJson(entries)),
+        DefaultAnalyticsPersistence.Defaults.CacheFileWriteOptions*
+      )
+    }
+
+    result match {
+      case Success(_) =>
+        log.debug(
+          "Cached [{}] pending analytics entries to [{}]",
+          entries.size,
+          localCachePending
+        )
+
+      case Failure(e) =>
+        log.warn(
+          "Failed to cache pending analytics entries to [{}]: [{} - {}]",
+          localCachePending,
+          e.getClass.getSimpleName,
+          e.getMessage
+        )
+    }
+  }
+
+  override def restorePending(): Future[Seq[AnalyticsEntry]] = Future {
+    if (Files.exists(localCachePending)) {
+      Try(Json.parse(Files.readAllBytes(localCachePending)).as[Seq[AnalyticsEntry]]) match {
+        case Success(entries) =>
+          entries
+
+        case Failure(e) =>
+          log.warn(
+            "Failed to restore pending analytics entries from [{}]: [{} - {}]",
+            localCachePending,
+            e.getClass.getSimpleName,
+            e.getMessage
+          )
+
+          Seq.empty
+      }
+    } else {
+      Seq.empty
     }
   }
 
