@@ -13,6 +13,9 @@ trait AnalyticsPersistence {
   def transmit(entry: AnalyticsEntry): Future[Done]
   def restore(): Future[Option[AnalyticsEntry]]
 
+  def cachePending(entries: Seq[AnalyticsEntry]): Unit
+  def restorePending(): Future[Seq[AnalyticsEntry]]
+
   def lastCached: Instant
   def lastTransmitted: Instant
 

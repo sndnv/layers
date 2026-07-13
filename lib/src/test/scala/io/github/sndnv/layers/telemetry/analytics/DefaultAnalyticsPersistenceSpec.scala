@@ -35,6 +35,31 @@ class DefaultAnalyticsPersistenceSpec extends UnitSpec with FileSystemHelpers {
     persistence.lastCached should be > Instant.EPOCH
   }
 
+  it should "update an existing local cache" in {
+    val (fs, _) = createMockFileSystem(setup = FileSystemHelpers.FileSystemSetup.Unix)
+
+    val config = DefaultAnalyticsPersistence.Config(
+      localCache = fs.getPath("test-cache.json"),
+      keepEvents = true,
+      keepFailures = true
+    )
+
+    val persistence = DefaultAnalyticsPersistence(config = config)
+
+    persistence.cache(entry)
+
+    config.localCache.exists should be(true)
+    Json.parse(config.localCache.content.await).as[AnalyticsEntry] should be(entry)
+
+    val updated = AnalyticsEntry
+      .collected(app = ApplicationInformation.none)
+      .withEvent(name = "other-event", attributes = Map.empty)
+
+    persistence.cache(updated)
+
+    Json.parse(config.localCache.content.await).as[AnalyticsEntry] should be(updated)
+  }
+
   it should "handle failures when caching entries locally" in {
     val (fs, _) = createMockFileSystem(setup = FileSystemHelpers.FileSystemSetup.Unix)
 
@@ -231,6 +256,149 @@ class DefaultAnalyticsPersistenceSpec extends UnitSpec with FileSystemHelpers {
     persistence.restore().map { actualEntry =>
       actualEntry should be(empty)
     }
+  }
+
+  it should "cache and restore pending entries" in {
+    val (fs, _) = createMockFileSystem(setup = FileSystemHelpers.FileSystemSetup.Unix)
+
+    val config = DefaultAnalyticsPersistence.Config(
+      localCache = fs.getPath("test-cache.json"),
+      keepEvents = true,
+      keepFailures = true
+    )
+
+    val persistence = DefaultAnalyticsPersistence(config = config)
+
+    val localCachePending = fs.getPath("test-cache_pending.json")
+
+    localCachePending.exists should be(false)
+
+    val first = AnalyticsEntry
+      .collected(app = ApplicationInformation.none)
+      .withEvent(name = "test", attributes = Map.empty)
+    val second = AnalyticsEntry
+      .collected(app = ApplicationInformation.none)
+      .withEvent(name = "test-a", attributes = Map.empty)
+
+    persistence.cachePending(entries = Seq(first, second))
+
+    localCachePending.exists should be(true)
+
+    persistence.restorePending().map { restored =>
+      restored.map(_.events.map(_.event)) should be(Seq(Seq("test"), Seq("test-a")))
+    }
+  }
+
+  it should "update an existing pending cache" in {
+    val (fs, _) = createMockFileSystem(setup = FileSystemHelpers.FileSystemSetup.Unix)
+
+    val config = DefaultAnalyticsPersistence.Config(
+      localCache = fs.getPath("test-cache.json"),
+      keepEvents = true,
+      keepFailures = true
+    )
+
+    val persistence = DefaultAnalyticsPersistence(config = config)
+
+    val localCachePending = fs.getPath("test-cache_pending.json")
+
+    val first = AnalyticsEntry
+      .collected(app = ApplicationInformation.none)
+      .withEvent(name = "test", attributes = Map.empty)
+    val second = AnalyticsEntry
+      .collected(app = ApplicationInformation.none)
+      .withEvent(name = "test-a", attributes = Map.empty)
+
+    persistence.cachePending(entries = Seq(first))
+
+    localCachePending.exists should be(true)
+    Json.parse(localCachePending.content.await).as[Seq[AnalyticsEntry]] should be(Seq(first))
+
+    persistence.cachePending(entries = Seq(first, second))
+
+    Json.parse(localCachePending.content.await).as[Seq[AnalyticsEntry]] should be(Seq(first, second))
+  }
+
+  it should "not restore pending entries, when not available" in {
+    val (fs, _) = createMockFileSystem(setup = FileSystemHelpers.FileSystemSetup.Unix)
+
+    val config = DefaultAnalyticsPersistence.Config(
+      localCache = fs.getPath("test-cache.json"),
+      keepEvents = true,
+      keepFailures = true
+    )
+
+    val persistence = DefaultAnalyticsPersistence(config = config)
+
+    fs.getPath("test-cache_pending.json").exists should be(false)
+
+    persistence.restorePending().map { restored =>
+      restored should be(empty)
+    }
+  }
+
+  it should "not restore pending entries, when the pending cache is corrupted" in {
+    val (fs, _) = createMockFileSystem(setup = FileSystemHelpers.FileSystemSetup.Unix)
+
+    val config = DefaultAnalyticsPersistence.Config(
+      localCache = fs.getPath("test-cache.json"),
+      keepEvents = true,
+      keepFailures = true
+    )
+
+    val persistence = DefaultAnalyticsPersistence(config = config)
+
+    val localCachePending = fs.getPath("test-cache_pending.json")
+
+    val _ = localCachePending.write(content = "{invalid").await
+
+    localCachePending.exists should be(true)
+
+    persistence.restorePending().map { restored =>
+      restored should be(empty)
+    }
+  }
+
+  it should "handle failures when caching pending entries locally" in {
+    val (fs, _) = createMockFileSystem(setup = FileSystemHelpers.FileSystemSetup.Unix)
+
+    val config = DefaultAnalyticsPersistence.Config(
+      localCache = fs.getPath("/a/b/c/"), // invalid configuration
+      keepEvents = true,
+      keepFailures = true
+    )
+
+    val persistence = DefaultAnalyticsPersistence(config = config)
+
+    persistence.cachePending(entries = Seq(entry))
+
+    fs.getPath("/a/b/c_pending").exists should be(false)
+  }
+
+  it should "derive the pending cache path from the local cache path" in {
+    val (fs, _) = createMockFileSystem(setup = FileSystemHelpers.FileSystemSetup.Unix)
+
+    val withExtension = DefaultAnalyticsPersistence(
+      config = DefaultAnalyticsPersistence.Config(
+        localCache = fs.getPath("/test-file.json"),
+        keepEvents = true,
+        keepFailures = true
+      )
+    )
+
+    val withoutExtension = DefaultAnalyticsPersistence(
+      config = DefaultAnalyticsPersistence.Config(
+        localCache = fs.getPath("/test-file"),
+        keepEvents = true,
+        keepFailures = true
+      )
+    )
+
+    withExtension.cachePending(entries = Seq.empty)
+    withoutExtension.cachePending(entries = Seq.empty)
+
+    fs.getPath("/test-file_pending.json").exists should be(true)
+    fs.getPath("/test-file_pending").exists should be(true)
   }
 
   it should "support comparing Instants" in {

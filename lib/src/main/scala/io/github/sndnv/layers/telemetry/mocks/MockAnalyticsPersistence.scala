@@ -19,6 +19,7 @@ class MockAnalyticsPersistence(existing: Try[Option[AnalyticsEntry]]) extends An
 
   private val cachedEntries: mutable.Queue[AnalyticsEntry] = mutable.Queue.empty
   private val transmittedEntries: mutable.Queue[AnalyticsEntry] = mutable.Queue.empty
+  private val pendingRef: AtomicReference[Seq[AnalyticsEntry]] = new AtomicReference(Seq.empty)
 
   private val lastCachedRef: AtomicReference[Instant] = new AtomicReference(Instant.EPOCH)
   private val lastTransmittedRef: AtomicReference[Instant] = new AtomicReference(Instant.EPOCH)
@@ -37,6 +38,12 @@ class MockAnalyticsPersistence(existing: Try[Option[AnalyticsEntry]]) extends An
   override def restore(): Future[Option[AnalyticsEntry]] =
     Future.fromTry(existing)
 
+  override def cachePending(entries: Seq[AnalyticsEntry]): Unit =
+    pendingRef.set(entries)
+
+  override def restorePending(): Future[Seq[AnalyticsEntry]] =
+    Future.successful(pendingRef.get())
+
   override def lastCached: Instant = lastCachedRef.get()
 
   override def lastTransmitted: Instant = lastTransmittedRef.get()
@@ -44,6 +51,8 @@ class MockAnalyticsPersistence(existing: Try[Option[AnalyticsEntry]]) extends An
   def cached: Seq[AnalyticsEntry] = cachedEntries.toSeq
 
   def transmitted: Seq[AnalyticsEntry] = transmittedEntries.toSeq
+
+  def pending: Seq[AnalyticsEntry] = pendingRef.get()
 
   override def withClientProvider(provider: AnalyticsClient.Provider): Self =
     this
