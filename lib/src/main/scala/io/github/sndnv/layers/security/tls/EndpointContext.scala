@@ -6,6 +6,7 @@ import java.io.FileInputStream
 import java.io.FileNotFoundException
 import java.security.KeyStore
 import java.security.SecureRandom
+import java.security.cert.Certificate
 import java.security.cert.X509Certificate
 
 import javax.net.ssl.*
@@ -156,12 +157,13 @@ object EndpointContext {
 
       store.aliases().asScala.foreach {
         case alias if store.isKeyEntry(alias) =>
-          store.getCertificateChain(alias).zipWithIndex.foreach { case (certificate, index) =>
+          val chain = Option(store.getCertificateChain(alias)).getOrElse(Array.empty[Certificate])
+          require(chain.nonEmpty, s"Expected certificate chain for key entry [$alias]; secret keys are not supported")
+          chain.zipWithIndex.foreach { case (certificate, index) =>
             rebuiltStore.setCertificateEntry(s"$alias-${index.toString}", certificate)
           }
 
         case alias =>
-          require(store.isCertificateEntry(alias), s"Expected certificate entry for alias [$alias]")
           rebuiltStore.setCertificateEntry(alias, store.getCertificate(alias))
       }
 

@@ -9,6 +9,10 @@ class GeneratorsSpec extends UnitSpec {
     Generators.generateSeq(min = 2, max = 3, g = "abc").size should be(2)
   }
 
+  they should "generate sequences with default sizes" in {
+    Generators.generateSeq(g = "abc").size should (be >= 0 and be < 10)
+  }
+
   they should "generate URIs" in {
     Generators.generateUri should startWith("http://")
   }

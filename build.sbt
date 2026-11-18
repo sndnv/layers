@@ -6,10 +6,10 @@ val libraryName: String = "layers"
 name := libraryName
 
 ThisBuild / scalaVersion       := "2.13.18"
-ThisBuild / crossScalaVersions := Seq("2.13.18", "3.3.7")
+ThisBuild / crossScalaVersions := Seq("2.13.18", "3.3.9")
 
 ThisBuild / organization  := "io.github.sndnv"
-ThisBuild / homepage      := Some(url("https://github.com/sndnv/layers"))
+ThisBuild / homepage      := Some(uri("https://github.com/sndnv/layers"))
 ThisBuild / licenses      := List(License.Apache2)
 ThisBuild / versionScheme := Some("semver-spec")
 ThisBuild / developers    := List(
@@ -17,42 +17,43 @@ ThisBuild / developers    := List(
     id = "sndnv",
     name = "Angel Sanadinov",
     email = "angel.sanadinov@gmail.com",
-    url = url("https://github.com/sndnv")
+    url = uri("https://github.com/sndnv")
   )
 )
 
-lazy val versions = new {
+lazy val versions = (
   // pekko
-  val pekko     = "1.6.0"
-  val pekkoHttp = "1.3.0"
-  val pekkoJson = "3.9.2"
+  pekko = "2.0.0",
+  pekkoHttp = "2.0.0",
+  pekkoJson = "4.0.0",
 
   // persistence
-  val slick = "3.6.1"
-  val h2    = "2.4.240"
+  slick = "3.6.1",
+  h2 = "2.5.252",
 
   // telemetry
-  val openTelemetry           = "1.64.0"
-  val openTelemetryPrometheus = "1.64.0-alpha"
-  val prometheus              = "0.16.0"
+  openTelemetry = "1.68.0",
+  openTelemetryPrometheus = "1.68.0-alpha",
+  prometheus = "1.10.0",
 
   // testing
-  val scalaCheck = "1.19.0"
-  val scalaTest  = "3.2.20"
-  val mockito    = "5.23.0"
-  val jimfs      = "1.3.1"
+  scalaCheck = "1.20.0",
+  scalaTest = "3.2.20",
+  mockito = "5.24.0",
+  jimfs = "1.3.2",
 
   // misc
-  val playJson = "2.10.8"
-  val jose4j   = "0.9.6"
-  val logback  = "1.5.38"
-}
+  playJson = "3.0.6",
+  jose4j = "0.9.7",
+  logback = "1.6.7"
+)
 
 lazy val root = project
   .in(file("."))
   .settings(
     commonSettings,
     Seq(
+      name                 := s"$libraryName-root",
       publish / skip       := true,
       publishLocal / skip  := true,
       mimaFailOnNoPrevious := false
@@ -71,15 +72,16 @@ lazy val lib = (project in file("./lib"))
       "org.apache.pekko"     %% "pekko-slf4j"                       % versions.pekko                   % Provided,
       "org.apache.pekko"     %% "pekko-http"                        % versions.pekkoHttp               % Provided,
       "org.apache.pekko"     %% "pekko-http-core"                   % versions.pekkoHttp               % Provided,
-      "com.typesafe.play"    %% "play-json"                         % versions.playJson                % Provided,
+      "org.playframework"    %% "play-json"                         % versions.playJson                % Provided,
       "com.github.pjfanning" %% "pekko-http-play-json"              % versions.pekkoJson               % Provided,
       "org.bitbucket.b_c"     % "jose4j"                            % versions.jose4j                  % Provided,
       "io.opentelemetry"      % "opentelemetry-api"                 % versions.openTelemetry           % Provided,
       "io.opentelemetry"      % "opentelemetry-sdk"                 % versions.openTelemetry           % Provided,
       "io.opentelemetry"      % "opentelemetry-exporter-prometheus" % versions.openTelemetryPrometheus % Provided,
-      "io.prometheus"         % "simpleclient"                      % versions.prometheus              % Provided,
+      "io.prometheus"         % "prometheus-metrics-model"          % versions.prometheus              % Provided,
       "com.typesafe.slick"   %% "slick"                             % versions.slick                   % Test,
       "com.h2database"        % "h2"                                % versions.h2                      % Test,
+      "io.prometheus"         % "prometheus-metrics-core"           % versions.prometheus              % Test,
       "org.scalacheck"       %% "scalacheck"                        % versions.scalaCheck              % Test,
       "org.scalatest"        %% "scalatest"                         % versions.scalaTest               % Test,
       "org.apache.pekko"     %% "pekko-testkit"                     % versions.pekko                   % Test,
@@ -89,8 +91,7 @@ lazy val lib = (project in file("./lib"))
       "com.google.jimfs"      % "jimfs"                             % versions.jimfs                   % Test,
       "ch.qos.logback"        % "logback-classic"                   % versions.logback                 % Test
     ),
-    mimaPreviousArtifacts := git.gitDescribedVersion.value
-      .flatMap(_.split("-").headOption)
+    mimaPreviousArtifacts := previousStableVersion.value
       .map(version => organization.value %% moduleName.value % version)
       .toSet,
     mimaFailOnProblem     := sys.env.getOrElse("MIMA_FAIL_ON_PROBLEM", "true").toBoolean,
@@ -105,6 +106,7 @@ lazy val testing = (project in file("./testing"))
   .settings(
     name                  := s"$libraryName-testing",
     description           := "Helper classes and functions for testing",
+    exportJars            := false,
     libraryDependencies ++= Seq(
       "org.apache.pekko"   %% "pekko-actor-typed" % versions.pekko      % Provided,
       "org.apache.pekko"   %% "pekko-stream"      % versions.pekko      % Provided,
@@ -114,8 +116,7 @@ lazy val testing = (project in file("./testing"))
       "com.typesafe.slick" %% "slick"             % versions.slick      % Provided,
       "com.h2database"      % "h2"                % versions.h2         % Provided
     ),
-    mimaPreviousArtifacts := git.gitDescribedVersion.value
-      .flatMap(_.split("-").headOption)
+    mimaPreviousArtifacts := previousStableVersion.value
       .map(version => organization.value %% moduleName.value % version)
       .toSet,
     mimaFailOnProblem     := sys.env.getOrElse("MIMA_FAIL_ON_PROBLEM", "true").toBoolean
@@ -128,6 +129,8 @@ lazy val excludedWarts = Seq(
 lazy val commonSettings = Seq(
   Test / logBuffered       := false,
   Test / parallelExecution := false,
+  coverageDataDir          := (Compile / classDirectory).value,
+  bomOutputPath            := target.value.getPath,
   includeBomSerialNumber   := true,
   includeBomTimestamp      := true,
   Compile / compile / wartremoverWarnings ++= Warts.unsafe.filterNot(excludedWarts.contains),
@@ -188,5 +191,5 @@ addCommandAlias(
 
 addCommandAlias(
   name = "qa",
-  value = "; prepare; check; coverage; test; coverageReport; coverageAggregate"
+  value = "; prepare; check; coverage; testFull; coverageReport; coverageAggregate"
 )

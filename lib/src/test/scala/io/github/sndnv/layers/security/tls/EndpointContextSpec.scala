@@ -2,8 +2,10 @@ package io.github.sndnv.layers.security.tls
 
 import java.io.ByteArrayOutputStream
 import java.io.FileNotFoundException
+import java.security.KeyStore
 import java.security.cert.CertificateExpiredException
 import java.security.cert.CertificateNotYetValidException
+import javax.crypto.KeyGenerator
 
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
@@ -125,6 +127,10 @@ class EndpointContextSpec extends UnitSpec {
     actualException.getMessage should be(expectedMessage)
   }
 
+  it should "create contexts if enabled" in {
+    EndpointContext(config = config.getConfig("context-server")) should be(defined)
+  }
+
   it should "not create contexts if not enabled" in {
     EndpointContext(config = config.getConfig("context-disabled")) should be(None)
   }
@@ -172,6 +178,28 @@ class EndpointContextSpec extends UnitSpec {
 
     decodedWithCertsOnly.size should be > 0
     decodedWithCertsOnly.aliases().asScala.toList.forall(decodedWithCertsOnly.isCertificateEntry) should be(true)
+  }
+
+  it should "fail to encode a KeyStore with secret keys" in {
+    val password = "test-password"
+
+    val store = KeyStore.getInstance("PKCS12")
+    store.load(None.orNull, None.orNull)
+    store.setEntry(
+      "test-secret",
+      new KeyStore.SecretKeyEntry(KeyGenerator.getInstance("AES").generateKey()),
+      new KeyStore.PasswordProtection(password.toCharArray)
+    )
+
+    val e = the[IllegalArgumentException] thrownBy EndpointContext.Encoded.encodeKeyStore(
+      store = store,
+      password = password,
+      storeType = "PKCS12"
+    )
+
+    e.getMessage should be(
+      "requirement failed: Expected certificate chain for key entry [test-secret]; secret keys are not supported"
+    )
   }
 
   it should "fail to decode a KeyStore with private keys" in {

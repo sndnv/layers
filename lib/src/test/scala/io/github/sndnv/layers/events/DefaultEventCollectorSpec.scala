@@ -8,7 +8,9 @@ import org.apache.pekko.Done
 import org.apache.pekko.actor.typed.ActorSystem
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.stream.QueueOfferResult
+import org.apache.pekko.stream.scaladsl.Keep
 import org.apache.pekko.stream.scaladsl.Sink
+import org.apache.pekko.stream.scaladsl.Source
 import org.scalatest.concurrent.Eventually
 
 class DefaultEventCollectorSpec extends UnitSpec with Eventually {
@@ -211,11 +213,111 @@ class DefaultEventCollectorSpec extends UnitSpec with Eventually {
       state.eventsPublished should be(3)
       state.publishingFailures should be(3)
     }
+
+    val otherSubscriber = new Object()
+
+    val result = collector
+      .subscribe(subscriber = otherSubscriber)
+      .take(1)
+      .runWith(Sink.seq)
+
+    eventually {
+      collector.state.await.subscribers.length should be(2)
+    }
+
+    collector.publish(event = Event(name = "test4"))
+
+    eventually {
+      val state = collector.state.await
+      state.eventsReceived should be(4)
+      state.eventsPublished should be(4)
+      state.publishingFailures should be(4)
+    }
+
+    result.map { events =>
+      events.map(_.name) should be(Seq("test4"))
+    }
+  }
+
+  it should "not let a slow subscriber block other subscribers" in withRetry {
+    import io.github.sndnv.layers.events.DefaultEventCollector.*
+
+    val collector = DefaultEventCollector(name = "test-collector", config = config)
+
+    collector.state.await should be(State.empty)
+
+    val _ = collector
+      .subscribe(subscriber = this)
+      .runWith(Sink.asPublisher(fanout = false))
+
+    val result = collector
+      .subscribe(subscriber = new Object())
+      .takeWithin(1.second)
+      .runWith(Sink.seq)
+
+    eventually {
+      collector.state.await.subscribers.length should be(2)
+    }
+
+    val expected = (1 to 200).map(i => s"test$i")
+
+    expected.foreach(name => collector.publish(event = Event(name = name)))
+
+    result.map { events =>
+      events.map(_.name) should be(expected)
+    }
+  }
+
+  it should "keep working after unsubscribing a completed subscriber" in withRetry {
+    import io.github.sndnv.layers.events.DefaultEventCollector.*
+
+    val collector = DefaultEventCollector(name = "test-collector", config = config)
+
+    collector.state.await should be(State.empty)
+
+    val completed = collector
+      .subscribe(subscriber = this)
+      .take(1)
+      .runWith(Sink.seq)
+
+    eventually {
+      collector.state.await.subscribers.length should be(1)
+    }
+
+    collector.publish(event = Event(name = "test1"))
+
+    completed.await.map(_.name) should be(Seq("test1"))
+
+    eventually {
+      collector.state.await.subscribers.map(_.queue.isCompleted) should be(Seq(true))
+    }
+
+    collector.unsubscribe(subscriber = this)
+
+    eventually {
+      collector.state.await.subscribers should be(empty)
+    }
+
+    val result = collector
+      .subscribe(subscriber = new Object())
+      .take(1)
+      .runWith(Sink.seq)
+
+    eventually {
+      collector.state.await.subscribers.length should be(1)
+    }
+
+    collector.publish(event = Event(name = "test2"))
+
+    result.map { events =>
+      events.map(_.name) should be(Seq("test2"))
+    }
   }
 
   it should "process offer results" in {
     val event = Event(name = "test")
-    val (subscriber, _) = DefaultEventCollector.createSubscriber(subscriber = this, filter = None)(config, typedSystem)
+    val queue = Source.queue[Event](bufferSize = 1).toMat(Sink.ignore)(Keep.left).run()
+    val subscriber = DefaultEventCollector.Subscriber(ref = this, filter = None, queue = queue)
     val failure = new RuntimeException("test failure")
     val process: QueueOfferResult => Future[Done] = DefaultEventCollector.processOfferResult(event, subscriber)
 

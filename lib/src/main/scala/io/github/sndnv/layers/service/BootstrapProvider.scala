@@ -83,12 +83,9 @@ object BootstrapProvider {
     }.flatten
 
     private def loadBootstrapFile(configFile: String): com.typesafe.config.Config =
-      com.typesafe.config.ConfigFactory
-        .parseFile(
-          Option(getClass.getClassLoader.getResource(configFile))
-            .map(resource => new File(resource.toURI))
-            .getOrElse(new File(configFile))
-        )
+      Option(getClass.getClassLoader.getResource(configFile))
+        .map(resource => com.typesafe.config.ConfigFactory.parseURL(resource))
+        .getOrElse(com.typesafe.config.ConfigFactory.parseFile(new File(configFile)))
         .resolve()
         .getConfig("bootstrap")
   }

@@ -1,6 +1,7 @@
 package io.github.sndnv.layers.testing
 
 import java.nio.file.Files
+import java.nio.file.LinkOption
 
 import org.apache.pekko.actor.typed.ActorSystem
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
@@ -72,6 +73,94 @@ class FileSystemHelpersSpec extends UnitSpec with FileSystemHelpers {
     parent.getParent.files() should be(empty)
     parent.exists should be(false)
     file.exists should be(false)
+  }
+
+  they should "support clearing nested directories" in {
+    import FileSystemHelpers.*
+
+    val (fs, _) = createMockFileSystem(setup = FileSystemSetup.empty)
+
+    val root = fs.getPath("/target/test-classes/a")
+    val nested = Seq(
+      root.resolve("file-1"),
+      root.resolve("b/file-2"),
+      root.resolve("b/c/file-3"),
+      root.resolve("b/c/d/file-4"),
+      root.resolve("e/f/file-5")
+    )
+
+    nested.foreach { path =>
+      Files.createDirectories(path.getParent)
+      Files.writeString(path, "test")
+    }
+
+    root.files().size should be(nested.size)
+
+    root.clear().await
+
+    root.exists should be(true)
+    root.files() should be(empty)
+    Files.list(root).count() should be(0)
+  }
+
+  they should "not follow symbolic links when clearing directories" in {
+    import FileSystemHelpers.*
+
+    val (fs, _) = createMockFileSystem(setup = FileSystemSetup.empty)
+
+    val root = fs.getPath("/target/test-classes/a")
+    val link = root.resolve("link")
+    val outside = fs.getPath("/other")
+    val outsideFile = outside.resolve("file")
+
+    Files.createDirectories(root)
+    Files.createDirectories(outside)
+    Files.writeString(outsideFile, "test")
+    Files.createSymbolicLink(link, outside)
+
+    root.clear().await
+
+    Files.exists(link, LinkOption.NOFOLLOW_LINKS) should be(false)
+    outsideFile.exists should be(true)
+  }
+
+  they should "fail to use helper methods with invalid paths" in {
+    import FileSystemHelpers.*
+
+    val (fs, _) = createMockFileSystem(setup = FileSystemSetup.empty)
+
+    val testClasses = fs.getPath("/target/test-classes")
+    val directory = testClasses.resolve("a")
+    val file = directory.resolve("b")
+    val outside = fs.getPath("/other")
+
+    Files.createDirectories(directory)
+    Files.createDirectories(outside)
+    Files.writeString(file, "test")
+
+    (the[IllegalArgumentException] thrownBy directory.write(content = "test")).getMessage should be(
+      "requirement failed: Expected [/target/test-classes/a] to be a file"
+    )
+
+    (the[IllegalArgumentException] thrownBy directory.content).getMessage should be(
+      "requirement failed: Expected [/target/test-classes/a] to be a file"
+    )
+
+    (the[IllegalArgumentException] thrownBy file.clear()).getMessage should be(
+      "requirement failed: Expected [/target/test-classes/a/b] to be a directory"
+    )
+
+    (the[IllegalArgumentException] thrownBy outside.clear()).getMessage should be(
+      "requirement failed: Expected [/other] to be under target/test-classes"
+    )
+
+    (the[IllegalArgumentException] thrownBy testClasses.clear()).getMessage should be(
+      "requirement failed: Expected [/target/test-classes] to be a child of target/test-classes"
+    )
+
+    (the[IllegalArgumentException] thrownBy file.files()).getMessage should be(
+      "requirement failed: Expected [/target/test-classes/a/b] to be a directory"
+    )
   }
 
   they should "normalize Unix paths for a Unix filesystem" in {
