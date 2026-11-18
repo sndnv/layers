@@ -35,7 +35,7 @@ trait TestSlickDatabase {
       s"Cannot change settings for an existing database [$actualUrl]; existing=[$existingSettings], provided=[$providedSettings]"
     )
 
-    val database = H2Profile.api.Database.forURL(url = url, keepAliveConnection = true)
+    val database = H2Profile.api.Database.forURL(url = url, driver = "org.h2.Driver", keepAliveConnection = true)
 
     import scala.concurrent.ExecutionContext.Implicits.global
     val result = f(H2Profile, database)

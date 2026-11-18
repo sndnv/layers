@@ -1,7 +1,6 @@
 package io.github.sndnv.layers.events.mocks
 
 import scala.collection.mutable
-import scala.concurrent.duration.*
 
 import io.github.sndnv.layers.events.DefaultEventCollector
 import io.github.sndnv.layers.events.Event
@@ -15,11 +14,6 @@ class MockEventCollector()(implicit system: ActorSystem[Nothing]) extends EventC
 
   private val subscribers: mutable.Map[AnyRef, DefaultEventCollector.Subscriber] = mutable.Map.empty
 
-  private implicit val config: DefaultEventCollector.Config = DefaultEventCollector.Config(
-    subscriberBufferSize = 100,
-    quietPeriod = 0.seconds
-  )
-
   override def publish(event: => Event): Unit = {
     collectedEvents.append(event)
     subscribers.values.foreach(_.queue.offer(event))
@@ -29,8 +23,8 @@ class MockEventCollector()(implicit system: ActorSystem[Nothing]) extends EventC
     subscriber: AnyRef,
     filter: Option[Event => Boolean]
   ): Source[Event, NotUsed] = {
-    val (sub, source) = DefaultEventCollector.createSubscriber(subscriber = subscriber, filter = filter)
-    subscribers.put(subscriber, sub)
+    val (queue, source) = Source.queue[Event](bufferSize = 100).preMaterialize()
+    subscribers.put(subscriber, DefaultEventCollector.Subscriber(ref = subscriber, filter = filter, queue = queue))
 
     filter match {
       case Some(f) => source.filter(f)

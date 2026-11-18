@@ -4,6 +4,7 @@ import java.time.Instant
 import java.util.concurrent.atomic.AtomicBoolean
 
 import scala.concurrent.Future
+import scala.concurrent.Promise
 import scala.concurrent.duration.*
 import scala.util.Success
 
@@ -654,6 +655,70 @@ class DefaultAnalyticsCollectorSpec extends UnitSpec with Eventually {
     eventually {
       persistence.cached.size should be(1)
       persistence.transmitted should be(empty)
+    }
+  }
+
+  it should "cache state when stopped while restoring" in withRetry {
+    val restored = Promise[Option[AnalyticsEntry]]()
+
+    val persistence = new MockAnalyticsPersistence(existing = Success(None)) {
+      override def lastTransmitted: Instant = Instant.now()
+      override def restore(): Future[Option[AnalyticsEntry]] = restored.future
+    }
+
+    val collector = DefaultAnalyticsCollector(
+      name = "test-analytics-collector",
+      config = config.copy(persistenceInterval = config.persistenceInterval.mul(10L)),
+      persistence = persistence,
+      app = ApplicationInformation.none
+    )
+
+    collector.recordEvent("test_event")
+    collector.stop()
+
+    persistence.cached should be(empty)
+
+    restored.success(None)
+
+    eventually {
+      persistence.cached.map(_.events.map(_.event)) should be(Seq(Seq("test_event")))
+      persistence.transmitted should be(empty)
+    }
+  }
+
+  it should "cache state when stopped while transmitting" in withRetry {
+    val transmissionStarted = new AtomicBoolean(false)
+    val transmission = Promise[Done]()
+
+    val persistence = new MockAnalyticsPersistence(existing = Success(None)) {
+      override def transmit(entry: AnalyticsEntry): Future[Done] = {
+        transmissionStarted.set(true)
+        transmission.future
+      }
+    }
+
+    val collector = DefaultAnalyticsCollector(
+      name = "test-analytics-collector",
+      config = config.copy(persistenceInterval = config.persistenceInterval.mul(10L)),
+      persistence = persistence,
+      app = ApplicationInformation.none
+    )
+
+    collector.send()
+
+    eventually {
+      transmissionStarted.get() should be(true)
+    }
+
+    collector.recordEvent("test_event")
+    collector.stop()
+
+    persistence.cached should be(empty)
+
+    transmission.success(Done)
+
+    eventually {
+      persistence.cached.map(_.events.map(_.event)) should be(Seq(Seq.empty, Seq("test_event")))
     }
   }
 

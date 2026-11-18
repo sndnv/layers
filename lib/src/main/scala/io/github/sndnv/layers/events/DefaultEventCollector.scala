@@ -5,6 +5,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Failure
 import scala.util.Success
+import scala.util.Try
 
 import io.github.sndnv.layers.events.exceptions.EventCollectionFailure
 import org.apache.pekko.Done
@@ -13,10 +14,10 @@ import org.apache.pekko.actor.typed.*
 import org.apache.pekko.actor.typed.scaladsl.AskPattern.*
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.scaladsl.StashBuffer
+import org.apache.pekko.stream.BoundedSourceQueue
 import org.apache.pekko.stream.OverflowStrategy
 import org.apache.pekko.stream.QueueOfferResult
 import org.apache.pekko.stream.scaladsl.Source
-import org.apache.pekko.stream.scaladsl.SourceQueueWithComplete
 import org.apache.pekko.util.Timeout
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -32,7 +33,8 @@ import org.slf4j.LoggerFactory
   * @see [[EventCollector.NoOp]] for the no-op collector implementation
   */
 class DefaultEventCollector private (
-  collectorRef: ActorRef[DefaultEventCollector.Message]
+  collectorRef: ActorRef[DefaultEventCollector.Message],
+  subscriberBufferSize: Int
 )(implicit scheduler: Scheduler, timeout: Timeout)
     extends EventCollector {
   override def publish(event: => Event): Unit =
@@ -40,12 +42,12 @@ class DefaultEventCollector private (
 
   override protected def subscribe(subscriber: AnyRef, filter: Option[Event => Boolean]): Source[Event, NotUsed] =
     Source
-      .futureSource(
-        collectorRef ? ((ref: ActorRef[Source[Event, NotUsed]]) =>
-          DefaultEventCollector.Subscribe(subscriber = subscriber, filter = filter, replyTo = ref)
-        )
-      )
-      .mapMaterializedValue(_ => NotUsed)
+      .queue[Event](bufferSize = subscriberBufferSize)
+      .mapMaterializedValue { queue =>
+        collectorRef ! DefaultEventCollector.Subscribe(subscriber = subscriber, filter = filter, queue = queue)
+        NotUsed
+      }
+      .buffer(size = subscriberBufferSize, overflowStrategy = OverflowStrategy.dropHead)
 
   override def unsubscribe(subscriber: AnyRef): Unit =
     collectorRef ! DefaultEventCollector.Unsubscribe(subscriber = subscriber)
@@ -86,7 +88,7 @@ object DefaultEventCollector {
       name = s"$name-${java.util.UUID.randomUUID().toString}"
     )
 
-    new DefaultEventCollector(collectorRef = collectorRef)
+    new DefaultEventCollector(collectorRef = collectorRef, subscriberBufferSize = config.subscriberBufferSize)
   }
 
   /**
@@ -111,20 +113,14 @@ object DefaultEventCollector {
 
   private def subscribing(state: State)(implicit config: Config, buffer: StashBuffer[Message], log: Logger): Behavior[Message] =
     Behaviors.receive {
-      case (ctx, Subscribe(subscriber, filter, replyTo)) =>
-        import ctx.system
-
-        val (created, source) = createSubscriber(subscriber, filter)
-
-        replyTo ! source
-
+      case (_, Subscribe(subscriber, filter, queue)) =>
         log.debug(
           "Adding subscriber [{}] to [{}] existing subscriber(s)",
           subscriber.getClass.getName,
           state.subscribers.length
         )
 
-        subscribing(state = state.addSubscriber(created))
+        subscribing(state = state.addSubscriber(Subscriber(ref = subscriber, filter = filter, queue = queue)))
 
       case (_, Unsubscribe(subscriber)) =>
         log.debug(
@@ -189,13 +185,7 @@ object DefaultEventCollector {
           publishing(state = state.eventReceived())
         }
 
-      case (ctx, Subscribe(subscriber, filter, replyTo)) =>
-        import ctx.system
-
-        val (created, source) = createSubscriber(subscriber, filter)
-
-        replyTo ! source
-
+      case (_, Subscribe(subscriber, filter, queue)) =>
         log.debug(
           "Adding subscriber [{}] to [{}] existing subscriber(s); latest events: [received={},published={}]",
           subscriber.getClass.getName,
@@ -204,7 +194,7 @@ object DefaultEventCollector {
           state.eventsPublished
         )
 
-        collecting(state = state.addSubscriber(created)(log))
+        collecting(state = state.addSubscriber(Subscriber(ref = subscriber, filter = filter, queue = queue))(log))
 
       case (_, Unsubscribe(subscriber)) =>
         log.debug(
@@ -270,7 +260,7 @@ object DefaultEventCollector {
       val (removedSubscribers, remainingSubscribers) = subscribers.partition(_.ref == subscriber)
 
       removedSubscribers.foreach { sub =>
-        sub.queue.complete()
+        val _ = Try(sub.queue.complete())
       }
 
       val existingSubscriptions = removedSubscribers.length
@@ -302,7 +292,7 @@ object DefaultEventCollector {
   private final case class Subscribe(
     subscriber: AnyRef,
     filter: Option[Event => Boolean],
-    replyTo: ActorRef[Source[Event, NotUsed]]
+    queue: BoundedSourceQueue[Event]
   ) extends Message
 
   private final case class Unsubscribe(subscriber: AnyRef) extends Message
@@ -316,36 +306,13 @@ object DefaultEventCollector {
   private[events] final case class Subscriber(
     ref: AnyRef,
     filter: Option[Event => Boolean],
-    queue: SourceQueueWithComplete[Event]
+    queue: BoundedSourceQueue[Event]
   ) {
     def matches(event: Event): Boolean =
       filter.forall(f => f(event))
 
     def send(event: Event): Future[Done] =
-      queue
-        .offer(event)
-        .flatMap(processOfferResult(event, this))(ExecutionContext.parasitic)
-  }
-
-  private[events] def createSubscriber(
-    subscriber: AnyRef,
-    filter: Option[Event => Boolean]
-  )(implicit config: Config, system: ActorSystem[Nothing]): (Subscriber, Source[Event, NotUsed]) = {
-    val (queue, source) = Source
-      .queue[Event](
-        bufferSize = 0,
-        overflowStrategy = OverflowStrategy.dropHead,
-        maxConcurrentOffers = config.subscriberBufferSize
-      )
-      .preMaterialize()
-
-    val sub = Subscriber(
-      ref = subscriber,
-      filter = filter,
-      queue = queue
-    )
-
-    (sub, source)
+      processOfferResult(event, this)(queue.offer(event))
   }
 
   private[events] def processOfferResult(event: Event, subscriber: Subscriber)(

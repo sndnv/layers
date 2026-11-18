@@ -104,15 +104,14 @@ trait FileSystemHelpers {
         }
 
       val stream: java.util.stream.Stream[Future[Done]] = Files
-        .walk(resourcePath, Seq.empty[FileVisitOption]: _*)
-        .filter(path => !Files.isHidden(path) && path != resourcePath)
+        .list(resourcePath)
+        .filter(path => !Files.isHidden(path))
         .sorted()
         .map {
-          case path if Files.isDirectory(path) =>
+          case path if Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS) =>
             path
               .clear()
               .flatMap(_ => deleteEntity(path))
-              .recoverWith { case _: NoSuchFileException => Future.successful(Done) }
 
           case path =>
             deleteEntity(path)

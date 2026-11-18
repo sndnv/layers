@@ -21,25 +21,25 @@ class OperatorsSpec extends UnitSpec {
       bytes
     }
 
-    val failedSource = Source.repeat(Done).map { _ =>
-      throw new RuntimeException("Test failure")
-    }
+    val failedSource = Source.failed[Done](new RuntimeException("Test failure"))
 
-    val failedSourceWithMultipleMaterializations = Source.repeat(Done).map { _ =>
-      throw new IllegalStateException("Substream Source(Test) cannot be materialized more than once")
-    }
+    val failedSourceWithIllegalState = Source.failed[Done](new IllegalStateException("Test failure"))
 
-    successfulSource.cancelled().map { _ =>
+    for {
+      _ <- successfulSource.cancelled()
+      failure <- failedSource.cancelled().failed
+      illegalStateFailure <- failedSourceWithIllegalState.cancelled().failed
+      substream <- Source(1 to 3).prefixAndTail(0).runWith(Sink.head).map(_._2)
+      _ <- substream.runWith(Sink.ignore)
+      _ <- substream.cancelled()
+    } yield {
       counter.get() should be(0)
-    }
 
-    failedSource.cancelled().failed.map { e =>
-      e shouldBe an[RuntimeException]
-      e.getMessage should be("Test failure")
-    }
+      failure shouldBe an[RuntimeException]
+      failure.getMessage should be("Test failure")
 
-    failedSourceWithMultipleMaterializations.cancelled().map { _ =>
-      counter.get() should be(0)
+      illegalStateFailure shouldBe an[IllegalStateException]
+      illegalStateFailure.getMessage should be("Test failure")
     }
   }
 

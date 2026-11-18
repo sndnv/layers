@@ -1,10 +1,14 @@
 package io.github.sndnv.layers.service
 
+import java.nio.file.Files
 import java.util.concurrent.atomic.AtomicInteger
 
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters.*
 
+import com.typesafe.config.ConfigFactory
 import io.github.sndnv.layers.persistence.migration.MigrationResult
+import io.github.sndnv.layers.service.bootstrap.mocks.TestClass
 import io.github.sndnv.layers.service.bootstrap.mocks.TestProvider
 import io.github.sndnv.layers.testing.UnitSpec
 import org.apache.pekko.Done
@@ -72,6 +76,32 @@ class BootstrapProviderSpec extends UnitSpec {
     )(system.executionContext)
 
     provider.run().await should be(BootstrapProvider.BootstrapMode.InitAndStart)
+
+    persistence.migrated should be(1)
+    persistence.initialized should be(1)
+    persistence.dropped should be(0)
+  }
+
+  it should "support loading bootstrap config files from the file system" in {
+    val persistence = new MockPersistenceProvider()
+    val entityProvider = new TestProvider()
+
+    val configFile = Files.createTempFile("bootstrap", ".conf")
+    val _ = Files.writeString(configFile, "bootstrap { test-classes = [{a: file, b: 1}] }")
+
+    val provider = BootstrapProvider(
+      bootstrapConfig = ConfigFactory.parseMap(Map("mode" -> "init", "config" -> configFile.toAbsolutePath.toString).asJava),
+      persistence = persistence,
+      entityProviders = Seq(entityProvider)
+    )(system.executionContext)
+
+    try {
+      provider.run().await should be(BootstrapProvider.BootstrapMode.Init)
+    } finally {
+      val _ = Files.deleteIfExists(configFile)
+    }
+
+    entityProvider.created.map(_.a).sorted should be(Seq(TestClass.Default.a, "file").sorted)
 
     persistence.migrated should be(1)
     persistence.initialized should be(1)

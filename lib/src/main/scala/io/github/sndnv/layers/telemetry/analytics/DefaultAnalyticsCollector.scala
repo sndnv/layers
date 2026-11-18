@@ -10,8 +10,10 @@ import scala.util.Success
 
 import io.github.sndnv.layers.telemetry.ApplicationInformation
 import org.apache.pekko.actor.typed.*
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.scaladsl.AskPattern.*
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
+import org.apache.pekko.actor.typed.scaladsl.StashBuffer
 import org.apache.pekko.actor.typed.scaladsl.TimerScheduler
 import org.apache.pekko.util.Timeout
 
@@ -65,7 +67,7 @@ object DefaultAnalyticsCollector {
   ): Behavior[Message] =
     Behaviors.withStash(capacity = Int.MaxValue) { buffer =>
       Behaviors.withTimers { implicit scheduler =>
-        Behaviors.receive {
+        def awaitingState(stopRequested: Boolean): Behavior[Message] = Behaviors.receive {
           case (ctx, LoadState) =>
             implicit val ec: ExecutionContext = ctx.executionContext
             ctx.pipeToSelf(
@@ -107,13 +109,18 @@ object DefaultAnalyticsCollector {
             }
             Behaviors.same
 
-          case (_, StateLoaded(entry, pending)) =>
-            buffer.unstashAll(collecting(entry, pending))
+          case (ctx, StateLoaded(entry, pending)) =>
+            unstashAll(buffer, collecting(entry, pending), stopRequested)(ctx)
+
+          case (_, Stop) =>
+            awaitingState(stopRequested = true)
 
           case (_, other) =>
             val _ = buffer.stash(other)
             Behaviors.same
         }
+
+        awaitingState(stopRequested = false)
       }
     }
 
@@ -236,21 +243,38 @@ object DefaultAnalyticsCollector {
     scheduler: TimerScheduler[Message]
   ): Behavior[Message] =
     Behaviors.withStash(capacity = Int.MaxValue) { buffer =>
-      Behaviors.receiveMessage {
-        case StateTransmitted(pending, true) =>
+      def awaitingTransmission(stopRequested: Boolean): Behavior[Message] = Behaviors.receive {
+        case (ctx, StateTransmitted(pending, true)) =>
           val empty = AnalyticsEntry.collected(app)
           persistence.cache(entry = empty)
-          buffer.unstashAll(collecting(entry = empty, pending = pending))
+          unstashAll(buffer, collecting(entry = empty, pending = pending), stopRequested)(ctx)
 
-        case StateTransmitted(pending, false) =>
+        case (ctx, StateTransmitted(pending, false)) =>
           persistence.cache(entry = inFlight)
-          buffer.unstashAll(collecting(entry = inFlight, pending = pending))
+          unstashAll(buffer, collecting(entry = inFlight, pending = pending), stopRequested)(ctx)
 
-        case other =>
+        case (_, Stop) =>
+          awaitingTransmission(stopRequested = true)
+
+        case (_, other) =>
           val _ = buffer.stash(other)
           Behaviors.same
       }
+
+      awaitingTransmission(stopRequested = false)
     }
+
+  private def unstashAll(
+    buffer: StashBuffer[Message],
+    behavior: Behavior[Message],
+    stopRequested: Boolean
+  )(ctx: ActorContext[Message]): Behavior[Message] = {
+    val next = buffer.unstashAll(behavior)
+    if (stopRequested) {
+      ctx.self ! Stop
+    }
+    next
+  }
 
   private sealed trait Message
   private final case class RecordEvent(name: String, attributes: Map[String, String]) extends Message

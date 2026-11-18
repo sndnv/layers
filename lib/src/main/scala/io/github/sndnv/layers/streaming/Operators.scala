@@ -26,7 +26,7 @@ object Operators {
       val promise = Promise[Done]()
 
       val _ = source
-        .watchTermination[Mat]() { case (prevMatValue, result) =>
+        .watchTermination[Mat] { case (prevMatValue, result) =>
           val _ = promise.completeWith(
             result.recover {
               case e: IllegalStateException if e.getMessage.contains("cannot be materialized more than once") =>

@@ -2,12 +2,12 @@ package io.github.sndnv.layers.telemetry.metrics
 
 import scala.concurrent.Future
 import scala.concurrent.Promise
+import scala.util.control.NonFatal
 
-import io.github.sndnv.layers.telemetry.metrics.internal.PrometheusProxyRegistry
 import io.opentelemetry.api.metrics.Meter
 import io.opentelemetry.exporter.prometheus.PrometheusHttpServer
 import io.opentelemetry.sdk.metrics.SdkMeterProvider
-import io.prometheus.client.CollectorRegistry
+import io.prometheus.metrics.model.registry.PrometheusRegistry
 import org.apache.pekko.Done
 
 trait MetricsExporter {
@@ -17,19 +17,19 @@ trait MetricsExporter {
 
 object MetricsExporter {
   class Prometheus(instrumentation: String, interface: String, port: Int) extends MetricsExporter {
+    private val registry = new PrometheusRegistry()
+
     private val reader = PrometheusHttpServer.builder
       .setHost(interface)
       .setPort(port)
+      .setPrometheusRegistry(registry)
       .build
 
     private val provider = SdkMeterProvider.builder
       .registerMetricReader(reader)
-      .registerMetricReader(proxy)
       .build
 
     override val meter: Meter = provider.get(instrumentation)
-
-    lazy val proxy: PrometheusProxyRegistry = PrometheusProxyRegistry(meter)
 
     override def shutdown(): Future[Done] = {
       val promise = Promise[Done]()
@@ -37,7 +37,7 @@ object MetricsExporter {
       val _ = provider
         .shutdown()
         .whenComplete { () =>
-          proxy.clear()
+          registry.clear()
           val _ = promise.success(Done)
         }
 
@@ -49,10 +49,18 @@ object MetricsExporter {
     def apply(instrumentation: String, interface: String, port: Int): Prometheus =
       new Prometheus(instrumentation, interface, port)
 
-    def asProxyRegistry(instrumentation: String, interface: String, port: Int)(f: CollectorRegistry => Unit): Prometheus = {
+    @SuppressWarnings(Array("org.wartremover.warts.Throw"))
+    def withRegistry(instrumentation: String, interface: String, port: Int)(f: PrometheusRegistry => Unit): Prometheus = {
       val exporter = Prometheus(instrumentation, interface, port)
-      f(exporter.proxy)
-      exporter
+
+      try {
+        f(exporter.registry)
+        exporter
+      } catch {
+        case NonFatal(e) =>
+          val _ = exporter.shutdown()
+          throw e
+      }
     }
   }
 }
