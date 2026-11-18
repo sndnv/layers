@@ -10,3 +10,4 @@ classes
 *.keystore
 .bsp
 .DS_Store
+.local

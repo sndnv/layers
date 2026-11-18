@@ -1,5 +1,7 @@
 package io.github.sndnv.layers.telemetry.analytics
 
+import java.nio.file.Files
+import java.nio.file.attribute.PosixFilePermissions
 import java.time.Instant
 
 import scala.concurrent.duration.*
@@ -16,6 +18,28 @@ import play.api.libs.json.Json
 class DefaultAnalyticsPersistenceSpec extends UnitSpec with FileSystemHelpers {
   "DefaultAnalyticsPersistence" should "cache entries locally" in {
     val (fs, _) = createMockFileSystem(setup = FileSystemHelpers.FileSystemSetup.Unix)
+
+    val config = DefaultAnalyticsPersistence.Config(
+      localCache = fs.getPath("test-cache.json"),
+      keepEvents = true,
+      keepFailures = true
+    )
+
+    val persistence = DefaultAnalyticsPersistence(config = config)
+
+    config.localCache.exists should be(false)
+    persistence.lastCached should be(Instant.EPOCH)
+
+    persistence.cache(entry)
+
+    config.localCache.exists should be(true)
+    Json.parse(config.localCache.content.await).as[AnalyticsEntry] should be(entry)
+    Files.getPosixFilePermissions(config.localCache) should be(PosixFilePermissions.fromString("rw-------"))
+    persistence.lastCached should be > Instant.EPOCH
+  }
+
+  it should "cache entries locally on file systems without POSIX support" in {
+    val (fs, _) = createMockFileSystem(setup = FileSystemHelpers.FileSystemSetup.Windows.withEmptyDirs)
 
     val config = DefaultAnalyticsPersistence.Config(
       localCache = fs.getPath("test-cache.json"),
@@ -283,10 +307,32 @@ class DefaultAnalyticsPersistenceSpec extends UnitSpec with FileSystemHelpers {
     persistence.cachePending(entries = Seq(first, second))
 
     localCachePending.exists should be(true)
+    Files.getPosixFilePermissions(localCachePending) should be(PosixFilePermissions.fromString("rw-------"))
 
     persistence.restorePending().map { restored =>
       restored.map(_.events.map(_.event)) should be(Seq(Seq("test"), Seq("test-a")))
     }
+  }
+
+  it should "cache pending entries on file systems without POSIX support" in {
+    val (fs, _) = createMockFileSystem(setup = FileSystemHelpers.FileSystemSetup.Windows.withEmptyDirs)
+
+    val config = DefaultAnalyticsPersistence.Config(
+      localCache = fs.getPath("test-cache.json"),
+      keepEvents = true,
+      keepFailures = true
+    )
+
+    val persistence = DefaultAnalyticsPersistence(config = config)
+
+    val localCachePending = fs.getPath("test-cache_pending.json")
+
+    localCachePending.exists should be(false)
+
+    persistence.cachePending(entries = Seq(entry))
+
+    localCachePending.exists should be(true)
+    Json.parse(localCachePending.content.await).as[Seq[AnalyticsEntry]] should be(Seq(entry))
   }
 
   it should "update an existing pending cache" in {
