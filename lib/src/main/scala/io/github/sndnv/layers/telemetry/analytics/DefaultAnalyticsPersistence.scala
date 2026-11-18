@@ -3,6 +3,7 @@ package io.github.sndnv.layers.telemetry.analytics
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardOpenOption
+import java.nio.file.attribute.FileAttribute
 import java.nio.file.attribute.PosixFilePermissions
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicReference
@@ -53,8 +54,7 @@ class DefaultAnalyticsPersistence(
 
     val result = Try {
       if (!Files.exists(config.localCache)) {
-        val permissions = PosixFilePermissions.fromString(DefaultAnalyticsPersistence.Defaults.CacheFilePermissions)
-        val _ = Files.createFile(config.localCache, PosixFilePermissions.asFileAttribute(permissions))
+        createCacheFile(config.localCache)
       }
 
       val content = Json.toBytes(
@@ -147,8 +147,7 @@ class DefaultAnalyticsPersistence(
   override def cachePending(entries: Seq[AnalyticsEntry]): Unit = {
     val result = Try {
       if (!Files.exists(localCachePending)) {
-        val permissions = PosixFilePermissions.fromString(DefaultAnalyticsPersistence.Defaults.CacheFilePermissions)
-        val _ = Files.createFile(localCachePending, PosixFilePermissions.asFileAttribute(permissions))
+        createCacheFile(localCachePending)
       }
 
       Files.write(
@@ -206,6 +205,18 @@ class DefaultAnalyticsPersistence(
   override def withClientProvider(provider: AnalyticsClient.Provider): Self = {
     clientProviderRef.set(Some(provider))
     this
+  }
+
+  private def createCacheFile(path: Path): Unit = {
+    val attributes: Seq[FileAttribute[?]] =
+      if (path.getFileSystem.supportedFileAttributeViews().contains("posix")) {
+        val permissions = PosixFilePermissions.fromString(DefaultAnalyticsPersistence.Defaults.CacheFilePermissions)
+        Seq(PosixFilePermissions.asFileAttribute(permissions))
+      } else {
+        Seq.empty
+      }
+
+    val _ = Files.createFile(path, attributes*)
   }
 }
 
